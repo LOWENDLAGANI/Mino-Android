@@ -1,0 +1,15 @@
+*.iml
+.gradle/
+local.properties
+.idea/
+build/
+captures/
+.externalNativeBuild
+.cxx
+*.apk
+*.aab
+.toolchain-dl.status
+.toolchain-dl.log
+.sdk-install.status
+
+.kotlin/

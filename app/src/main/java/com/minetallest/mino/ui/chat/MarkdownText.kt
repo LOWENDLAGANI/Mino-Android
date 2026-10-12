@@ -1,0 +1,208 @@
+package com.minetallest.mino.ui.chat
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.clickable
+import com.minetallest.mino.domain.Markdown
+import com.minetallest.mino.ui.theme.LocalMinoColors
+
+/**
+ * Markdown renderer for chat answers (spec §6.6): paragraphs, headings, fenced code
+ * blocks with copy buttons, bullets, ordered lists, quotes, inline styles and links.
+ * Streaming-safe — an unclosed fence renders live.
+ */
+@Composable
+fun MarkdownText(
+    markdown: String,
+    modifier: Modifier = Modifier,
+    baseColor: Color,
+    linkColor: Color,
+) {
+    val colors = LocalMinoColors.current
+    val blocks = remember(markdown) { Markdown.parse(markdown) }
+    Column(modifier = modifier) {
+        blocks.forEach { block ->
+            when (block) {
+                is Markdown.Block.Heading -> Text(
+                    text = inlineToAnnotated(block.inlines, baseColor, linkColor),
+                    fontSize = when (block.level) {
+                        1 -> 18.sp
+                        2 -> 16.sp
+                        else -> 15.sp
+                    },
+                    fontWeight = FontWeight.SemiBold,
+                    color = baseColor,
+                    modifier = Modifier.padding(top = 6.dp, bottom = 2.dp),
+                )
+                is Markdown.Block.Paragraph -> Text(
+                    text = inlineToAnnotated(block.inlines, baseColor, linkColor),
+                    color = baseColor,
+                    fontSize = 15.sp,
+                    lineHeight = 22.sp,
+                    modifier = Modifier.padding(vertical = 3.dp),
+                )
+                is Markdown.Block.Code -> CodeBlock(
+                    lang = block.lang,
+                    code = block.code,
+                    closed = block.closed,
+                )
+                is Markdown.Block.Bullet -> Column(Modifier.padding(vertical = 3.dp)) {
+                    block.items.forEach { item ->
+                        Row(Modifier.padding(vertical = 2.dp)) {
+                            Text("•  ", color = baseColor, fontSize = 15.sp)
+                            Text(
+                                text = inlineToAnnotated(item, baseColor, linkColor),
+                                color = baseColor,
+                                fontSize = 15.sp,
+                                lineHeight = 22.sp,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
+                is Markdown.Block.Ordered -> Column(Modifier.padding(vertical = 3.dp)) {
+                    block.items.forEachIndexed { index, item ->
+                        Row(Modifier.padding(vertical = 2.dp)) {
+                            Text("${index + 1}.  ", color = baseColor, fontSize = 15.sp)
+                            Text(
+                                text = inlineToAnnotated(item, baseColor, linkColor),
+                                color = baseColor,
+                                fontSize = 15.sp,
+                                lineHeight = 22.sp,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
+                is Markdown.Block.Quote -> Text(
+                    text = inlineToAnnotated(block.inlines, colors.textMid, linkColor),
+                    color = colors.textMid,
+                    fontSize = 14.sp,
+                    lineHeight = 21.sp,
+                    modifier = Modifier
+                        .padding(vertical = 4.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(colors.bgRaised)
+                        .padding(10.dp),
+                )
+                Markdown.Block.Rule -> Text(
+                    text = "────────────────",
+                    color = colors.textLow,
+                    fontSize = 10.sp,
+                    modifier = Modifier.padding(vertical = 6.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CodeBlock(lang: String?, code: String, closed: Boolean) {
+    val colors = LocalMinoColors.current
+    val clipboard = LocalClipboardManager.current
+    Column(
+        modifier = Modifier
+            .padding(vertical = 6.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(colors.bgRaised)
+            .fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 6.dp, top = 6.dp, bottom = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = lang ?: "code",
+                color = colors.code,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.6.sp,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                Icons.Filled.ContentCopy,
+                contentDescription = "Copy code",
+                tint = colors.textMid,
+                modifier = Modifier
+                    .size(14.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .clickable { clipboard.setText(AnnotatedString(code)) },
+            )
+        }
+        Text(
+            text = code + if (!closed) "▍" else "",
+            color = colors.text,
+            fontSize = 12.5.sp,
+            lineHeight = 18.sp,
+            fontFamily = FontFamily.Monospace,
+            modifier = Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+        )
+    }
+}
+
+private fun inlineToAnnotated(
+    inlines: List<Markdown.Inline>,
+    baseColor: Color,
+    linkColor: Color,
+): AnnotatedString = buildAnnotatedString {
+    inlines.forEach { inline ->
+        when (inline) {
+            is Markdown.Inline.Text -> withStyle(
+                SpanStyle(
+                    color = baseColor,
+                    fontWeight = if (Markdown.Style.BOLD in inline.styles) FontWeight.Bold else FontWeight.Normal,
+                    fontStyle = if (Markdown.Style.ITALIC in inline.styles) FontStyle.Italic else FontStyle.Normal,
+                ),
+            ) { append(inline.text) }
+            is Markdown.Inline.Code -> withStyle(
+                SpanStyle(
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 13.sp,
+                    color = linkColor,
+                ),
+            ) { append(inline.code) }
+            is Markdown.Inline.Link -> addStringAnnotation(
+                tag = "URL",
+                annotation = inline.url,
+                start = length,
+                end = length + inline.text.length,
+            ).also {
+                withStyle(
+                    SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline),
+                ) { append(inline.text) }
+            }
+        }
+    }
+}
