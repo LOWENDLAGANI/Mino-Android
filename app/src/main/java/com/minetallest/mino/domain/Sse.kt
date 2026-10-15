@@ -83,24 +83,3 @@ object SseEvents {
         }
     }
 }
-
-/** Assembles arbitrary stream chunks into `data:` payloads. */
-class SseAssembler {
-    private val buffer = StringBuilder()
-
-    /** Returns complete payloads (contents after `data: `), in order. */
-    fun feed(chunk: String): List<String> {
-        buffer.append(chunk)
-        val out = ArrayList<String>()
-        while (true) {
-            val nl = buffer.indexOf("\n")
-            if (nl < 0) break
-            val line = buffer.substring(0, nl).removeSuffix("\r")
-            buffer.delete(0, nl + 1)
-            if (line.startsWith("data:")) {
-                out.add(line.removePrefix("data:").removePrefix(" ").removePrefix("\t"))
-            }
-        }
-        return out
-    }
-}

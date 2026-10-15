@@ -5,17 +5,16 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-/** Dexie `mino-db` v4 → SQLite v4 (spec §7.1). */
+/** Dexie `mino-db` → SQLite (spec §7.1). */
 @Database(
     entities = [
         ChatEntity::class,
         MessageEntity::class,
         MemoryEntity::class,
         FolderEntity::class,
-        ScheduledEntity::class,
         TrashEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class MinoDatabase : RoomDatabase() {
@@ -23,7 +22,6 @@ abstract class MinoDatabase : RoomDatabase() {
     abstract fun messageDao(): MessageDao
     abstract fun memoryDao(): MemoryDao
     abstract fun folderDao(): FolderDao
-    abstract fun scheduledDao(): ScheduledDao
     abstract fun trashDao(): TrashDao
 
     companion object {

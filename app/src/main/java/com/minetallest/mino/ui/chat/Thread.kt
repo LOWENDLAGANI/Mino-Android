@@ -37,7 +37,6 @@ import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -353,7 +352,7 @@ private fun UserBubble(viewModel: ChatViewModel, message: ChatMessage) {
                 }
             } else {
                 Text(
-                    text = message.content,
+                    text = message.displayedContent(),
                     color = colors.textHi,
                     fontSize = 16.sp,
                     lineHeight = 24.sp,

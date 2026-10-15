@@ -179,7 +179,4 @@ object Markdown {
                 is Inline.Link -> inline.text
             }
         }
-
-    /** Plain text with link targets dropped (used for copy chat / truncation checks). */
-    fun stripToPlain(markdown: String): String = toSpeech(markdown)
 }

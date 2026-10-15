@@ -11,7 +11,6 @@ import com.minetallest.mino.domain.ChatFolder
 import com.minetallest.mino.domain.ChatMessage
 import com.minetallest.mino.domain.DocumentAttachment
 import com.minetallest.mino.domain.GeneratedImage
-import com.minetallest.mino.domain.Headlines
 import com.minetallest.mino.domain.ImageAttachment
 import com.minetallest.mino.domain.LocalSearch
 import com.minetallest.mino.domain.Memory
@@ -23,7 +22,6 @@ import com.minetallest.mino.domain.Refusals
 import com.minetallest.mino.domain.ResponseLength
 import com.minetallest.mino.domain.Role
 import com.minetallest.mino.domain.Rules
-import com.minetallest.mino.domain.ScheduledMessage
 import com.minetallest.mino.domain.SearchMode
 import com.minetallest.mino.domain.SearchSource
 import com.minetallest.mino.domain.TokenUsage
@@ -73,7 +71,6 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         val splashDone: Boolean = false,
         val displayName: String? = null,
         val maintenanceMessage: String? = null,
-        val appearance: String = "dark",
         val mode: ModeId = ModeId.AUTO,
         val searchMode: SearchMode = SearchMode.AUTO,
         val responseLength: ResponseLength = ResponseLength.BALANCED,
@@ -82,7 +79,6 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         val chats: List<Chat> = emptyList(),
         val folders: List<ChatFolder> = emptyList(),
         val memories: List<Memory> = emptyList(),
-        val scheduled: List<ScheduledMessage> = emptyList(),
         val trash: List<TrashEntry> = emptyList(),
         val activeChatId: String? = null,
         val temporary: Boolean = false,
@@ -98,8 +94,6 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         val plan: MinoApi.PlanInfo? = null,
         val dew: MinoApi.DewInfo? = null,
         val firebaseConfigured: Boolean = false,
-        val headline: String = Headlines.all.first(),
-        val headlineIndex: Int = 0,
         val notices: List<Notice> = emptyList(),
         val rememberDialogOpen: Boolean = false,
         val memorySuggestion: List<String> = emptyList(),
@@ -130,7 +124,6 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
     init {
         observeEverything()
         bootstrap()
-        startScheduler()
     }
 
     // ---------------------------------------------------------------- lifecycle
@@ -139,9 +132,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         viewModelScope.launch { repo.chats.collect { list -> _ui.update { it.copy(chats = list) } } }
         viewModelScope.launch { repo.folders.collect { list -> _ui.update { it.copy(folders = list) } } }
         viewModelScope.launch { repo.memories.collect { list -> _ui.update { it.copy(memories = list) } } }
-        viewModelScope.launch { repo.scheduled.collect { list -> _ui.update { it.copy(scheduled = list) } } }
         viewModelScope.launch { repo.trash.collect { list -> _ui.update { it.copy(trash = list) } } }
-        viewModelScope.launch { prefs.appearance.collect { v -> _ui.update { it.copy(appearance = v) } } }
         viewModelScope.launch { prefs.selectedMode.collect { v -> _ui.update { it.copy(mode = v) } } }
         viewModelScope.launch { prefs.searchMode.collect { v -> _ui.update { it.copy(searchMode = v) } } }
         viewModelScope.launch { prefs.responseLength.collect { v -> _ui.update { it.copy(responseLength = v) } } }
@@ -175,10 +166,8 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
             val name = prefs.displayName.first()
             val firstSeen = prefs.firstSeen.first()
             if (firstSeen == null) prefs.setFirstSeen(System.currentTimeMillis())
-            val (cursor, headline) = Headlines.next(prefs.headlineCursor.first())
-            prefs.setHeadlineCursor((cursor + 1) % Headlines.all.size)
             _ui.update {
-                it.copy(hydrated = true, displayName = name, headline = headline, headlineIndex = cursor)
+                it.copy(hydrated = true, displayName = name)
             }
             refreshServerState()
         }
@@ -268,7 +257,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
 
     fun startNewChat() {
         viewModelScope.launch {
-            stopStream(keepPartial = true)
+            stopStream()
             if (_ui.value.temporary) _ui.update { it.copy(temporaryMessages = emptyList()) }
             val chat = repo.createChat(System.currentTimeMillis())
             _ui.update {
@@ -279,7 +268,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
 
     fun selectChat(chatId: String) {
         viewModelScope.launch {
-            stopStream(keepPartial = true)
+            stopStream()
             if (_ui.value.temporary) _ui.update { it.copy(temporaryMessages = emptyList()) }
             _ui.update {
                 it.copy(activeChatId = chatId, temporary = false, drawerOpen = false, modelNotice = false)
@@ -290,7 +279,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
     /** Temporary chat — thread lives only in memory, never Room (spec §10.7). */
     fun toggleTemporary(enabled: Boolean? = null) {
         viewModelScope.launch {
-            stopStream(keepPartial = true)
+            stopStream()
             val next = enabled ?: !_ui.value.temporary
             if (next) {
                 _ui.update {
@@ -311,7 +300,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
 
     fun deleteChat(chatId: String) {
         viewModelScope.launch {
-            if (chatId == _ui.value.activeChatId) stopStream(keepPartial = true)
+            if (chatId == _ui.value.activeChatId) stopStream()
             repo.deleteChat(chatId, System.currentTimeMillis())
             if (chatId == _ui.value.activeChatId) {
                 _ui.update { it.copy(activeChatId = null) }
@@ -366,14 +355,13 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         )
     }
 
-    fun send(
+    fun    send(
         text: String,
         images: List<ImageAttachment> = emptyList(),
         documents: List<DocumentAttachment> = emptyList(),
         mode: ModeId,
         searchMode: SearchMode,
         imageMode: Boolean = false,
-        chatIdHint: String? = null,
     ) {
         val content = text.trim()
         if (content.isEmpty() && images.isEmpty()) return
@@ -385,7 +373,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
             val chatId = if (temporary) {
                 null
             } else {
-                chatIdHint ?: _ui.value.activeChatId ?: repo.createChat(now).id.also { id ->
+                _ui.value.activeChatId ?: repo.createChat(now).id.also { id ->
                     _ui.update { it.copy(activeChatId = id) }
                 }
             }
@@ -594,9 +582,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 
-    fun stopStream() = stopStream(keepPartial = true)
-
-    private fun stopStream(keepPartial: Boolean) {
+    fun stopStream() {
         streamHandle?.cancel()
         streamHandle = null
         _ui.update { it.copy(streaming = false, streamHint = null) }
@@ -733,69 +719,6 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
 
     fun clearRateLimit() = _composer.update { it.copy(rateLimitUntil = null) }
 
-    // ---------------------------------------------------------------- send later
-
-    fun scheduleMessage(text: String, sendAt: Long) {
-        val content = text.trim()
-        if (content.isEmpty()) return
-        val now = System.currentTimeMillis()
-        viewModelScope.launch {
-            repo.schedule(
-                ScheduledMessage(
-                    id = Rules.uid(),
-                    chatId = chatIdOrNull(),
-                    content = content,
-                    images = _composer.value.images.ifEmpty { null },
-                    documents = _composer.value.documents.ifEmpty { null },
-                    mode = _ui.value.mode,
-                    searchMode = _ui.value.searchMode,
-                    sendAt = sendAt,
-                    createdAt = now,
-                ),
-            )
-            _composer.update { it.copy(text = "", images = emptyList(), documents = emptyList()) }
-        }
-    }
-
-    fun cancelSchedule(id: String) = viewModelScope.launch { repo.unschedule(id) }
-
-    /**
-     * Spec §10.3 — the open session is the sender: sleeps until the earliest appointment
-     * (≤60 s re-check), fires the oldest due message, one at a time, never while streaming.
-     */
-    private fun startScheduler() {
-        viewModelScope.launch {
-            while (true) {
-                val items = repo.allScheduled()
-                if (items.isEmpty()) {
-                    delay(30_000)
-                    continue
-                }
-                val now = System.currentTimeMillis()
-                val due = items.firstOrNull { it.sendAt <= now }
-                if (due != null && !ui.value.streaming) {
-                    repo.unschedule(due.id)
-                    val targetChat = due.chatId?.takeIf { id -> repo.chat(id) != null }
-                    val chatId = targetChat ?: repo.createChat(System.currentTimeMillis()).id.also { id ->
-                        _ui.update { it.copy(activeChatId = id, temporary = false) }
-                    }
-                    send(
-                        text = due.content,
-                        images = due.images.orEmpty(),
-                        documents = due.documents.orEmpty(),
-                        mode = due.mode,
-                        searchMode = due.searchMode,
-                        chatIdHint = chatId,
-                    )
-                    delay(500)
-                } else {
-                    val earliest = items.minOf { it.sendAt }
-                    delay((earliest - System.currentTimeMillis()).coerceIn(1_000L, 60_000L))
-                }
-            }
-        }
-    }
-
     // ---------------------------------------------------------------- modes & settings
 
     /** Spec §6.3 — a separate-session mode aborts the stream and starts a fresh session. */
@@ -804,7 +727,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
             val wasDifferent = mode != _ui.value.mode
             prefs.setSelectedMode(mode)
             if (Models.info(mode).separateSession && wasDifferent) {
-                stopStream(keepPartial = true)
+                stopStream()
                 _composer.update { it.copy(imageMode = false) }
                 _ui.update { it.copy(drawerOpen = false, modelNotice = false) }
                 if (_ui.value.temporary) {
@@ -821,7 +744,6 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
     fun setSearchMode(mode: SearchMode) = viewModelScope.launch { prefs.setSearchMode(mode) }
     fun setResponseLength(value: ResponseLength) = viewModelScope.launch { prefs.setResponseLength(value) }
     fun setReasoningEffort(value: ReasoningEffort) = viewModelScope.launch { prefs.setReasoningEffort(value) }
-    fun setAppearance(value: String) = viewModelScope.launch { prefs.setAppearance(value) }
     fun setMemorySuggest(enabled: Boolean) = viewModelScope.launch { prefs.setMemorySuggest(enabled) }
 
     fun setApiBase(value: String) {

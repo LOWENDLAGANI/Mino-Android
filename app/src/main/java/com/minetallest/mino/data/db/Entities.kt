@@ -51,19 +51,6 @@ data class FolderEntity(
     val createdAt: Long,
 )
 
-@Entity(tableName = "scheduled", indices = [Index("sendAt")])
-data class ScheduledEntity(
-    @PrimaryKey val id: String,
-    val chatId: String?,
-    val content: String,
-    val mode: String,
-    val searchMode: String,
-    val sendAt: Long,
-    val createdAt: Long,
-    val images: String?,
-    val documents: String?,
-)
-
 @Entity(tableName = "trash", indices = [Index("deletedAt")])
 data class TrashEntity(
     @PrimaryKey val id: String,

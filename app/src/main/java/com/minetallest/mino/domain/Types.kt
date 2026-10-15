@@ -143,19 +143,6 @@ data class Memory(
 )
 
 @Serializable
-data class ScheduledMessage(
-    val id: String,
-    val chatId: String?,
-    val content: String,
-    val images: List<ImageAttachment>? = null,
-    val documents: List<DocumentAttachment>? = null,
-    val mode: ModeId = ModeId.AUTO,
-    val searchMode: SearchMode = SearchMode.AUTO,
-    val sendAt: Long,
-    val createdAt: Long,
-)
-
-@Serializable
 data class TrashEntry(
     val id: String,
     val title: String,

@@ -28,17 +28,12 @@ class Prefs(private val context: Context) {
         const val DISPLAY_NAME = "mino:display-name"
         const val RESPONSE_LENGTH = "mino:response-length"
         const val REASONING_EFFORT = "mino:reasoning-effort"
-        const val APPEARANCE = "mino:appearance"
         const val MEMORY_SUGGEST = "mino:memory-suggest"
         const val MEMORY_SUGGEST_OFF = "mino:memory-suggest-off"
         const val SUBSCRIPTION_ACK = "mino:subscription-ack"
         const val DELETED_CHATS = "mino:deleted-chats"
         const val FIRST_SEEN = "mino:first-seen"
-        const val EMPTY_HEADLINE_CURSOR = "mino:empty-headline-cursor"
-        const val SPLASH_SEEN = "mino:splash-seen"
-        const val TUTORIAL = "mino:tutorial"
         const val NOTES_SEEN = "mino:notes-seen"
-        const val AVAILABILITY = "mino:availability"
         const val SEARCH_MODE = "mino:search-mode"
         const val API_BASE = "mino:api-base"
         const val DEW_TRIAL = "mino:dew-trial"
@@ -54,13 +49,10 @@ class Prefs(private val context: Context) {
         ds.data.map { ReasoningEffort.fromWire(it[stringPreferencesKey(Keys.REASONING_EFFORT)]) }
     val searchMode: Flow<SearchMode> =
         ds.data.map { SearchMode.fromWire(it[stringPreferencesKey(Keys.SEARCH_MODE)]) }
-    val appearance: Flow<String> = ds.data.map { it[stringPreferencesKey(Keys.APPEARANCE)] ?: "dark" }
     val memorySuggest: Flow<Boolean> =
         ds.data.map { it[booleanPreferencesKey(Keys.MEMORY_SUGGEST)] ?: true }
     val subscriptionAck: Flow<Long> = ds.data.map { it[longPreferencesKey(Keys.SUBSCRIPTION_ACK)] ?: 0L }
     val firstSeen: Flow<Long?> = ds.data.map { it[longPreferencesKey(Keys.FIRST_SEEN)] }
-    val headlineCursor: Flow<Int> = ds.data.map { it[intPreferencesKey(Keys.EMPTY_HEADLINE_CURSOR)] ?: 0 }
-    val tutorialDone: Flow<Boolean> = ds.data.map { it[stringPreferencesKey(Keys.TUTORIAL)] == "done" }
     val notesSeen: Flow<List<String>> = ds.data.map { raw ->
         raw[stringPreferencesKey(Keys.NOTES_SEEN)]?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
     }
@@ -86,10 +78,6 @@ class Prefs(private val context: Context) {
         ds.edit { it[stringPreferencesKey(Keys.SEARCH_MODE)] = value.wire }
     }
 
-    suspend fun setAppearance(value: String) {
-        ds.edit { it[stringPreferencesKey(Keys.APPEARANCE)] = value }
-    }
-
     suspend fun setMemorySuggest(enabled: Boolean) {
         ds.edit { it[booleanPreferencesKey(Keys.MEMORY_SUGGEST)] = enabled }
     }
@@ -105,14 +93,6 @@ class Prefs(private val context: Context) {
 
     suspend fun setFirstSeen(value: Long) {
         ds.edit { it[longPreferencesKey(Keys.FIRST_SEEN)] = value }
-    }
-
-    suspend fun setHeadlineCursor(index: Int) {
-        ds.edit { it[intPreferencesKey(Keys.EMPTY_HEADLINE_CURSOR)] = index }
-    }
-
-    suspend fun setTutorialDone() {
-        ds.edit { it[stringPreferencesKey(Keys.TUTORIAL)] = "done" }
     }
 
     suspend fun markNotesSeen(ids: List<String>) {

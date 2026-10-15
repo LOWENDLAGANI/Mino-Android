@@ -153,7 +153,6 @@ internal fun DiagnosticsSection(viewModel: ChatViewModel, config: AppConfig?) {
         RowLine("Messages on device", ui.messages.size.toString())
         RowLine("Memories", ui.memories.size.toString())
         RowLine("Trash entries", ui.trash.size.toString())
-        RowLine("Scheduled", ui.scheduled.size.toString())
         RowLine(
             "Plan",
             when {

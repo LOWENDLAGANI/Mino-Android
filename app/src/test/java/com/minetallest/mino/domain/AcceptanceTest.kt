@@ -6,7 +6,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Acceptance invariants from spec §19 (variants, search, names, stream, schedule). */
+/** Acceptance invariants from spec §19 (variants, search, names, stream). */
 class AcceptanceTest {
 
     private fun message(
@@ -148,49 +148,4 @@ class AcceptanceTest {
         assertNull(SseEvents.parsePayload("not json"))
     }
 
-    @Test
-    fun assemblerIsChunkSafe_splitPayloadsStillArriveInOrder() {
-        val assembler = SseAssembler()
-        assertTrue(assembler.feed("data: {\"conte").isEmpty())
-        val first = assembler.feed("nt\":\"a\"}\ndata: {\"content\":\"b\"}\n")
-        assertEquals(listOf("""{"content":"a"}""", """{"content":"b"}"""), first)
-        assertEquals(listOf("[DONE]"), assembler.feed("data: [DONE]\r\n"))
-    }
-
-    // --- §10.3 schedule ----------------------------------------------------
-    @Test
-    fun schedulePresetsAndChipLabelsMatchTheSpec() {
-        val now = Schedule.inMinutes(System.currentTimeMillis(), 0) + 60_000L
-        assertEquals(listOf("In 5 minutes", "In 30 minutes", "In 1 hour", "Tomorrow 9:00"), Schedule.presets.map { it.label })
-
-        val five = Schedule.presets[0].sendAt(now)
-        assertEquals("in 5m", Schedule.chipLabel(now, five))
-        assertEquals("due now", Schedule.chipLabel(now + 10_000, now))
-        assertEquals("due now", Schedule.chipLabel(now, now - 10_000))
-
-        val tomorrow = Schedule.presets[3].sendAt(now)
-        assertFalse(Schedule.isToday(tomorrow))
-        assertTrue(Schedule.chipLabel(now, tomorrow).contains(","))
-
-        assertEquals(60_000L, Schedule.floor(now) - now)
-        assertTrue(Schedule.inMinutes(now, 30) > now)
-    }
-
-    // --- headlines ---------------------------------------------------------
-    @Test
-    fun headlinesRotateWithoutSticking() {
-        val (nextIndex, first) = Headlines.next(0)
-        assertTrue(nextIndex in Headlines.all.indices)
-        assertFalse(first.isBlank())
-        // The cursor is persisted *after* display, so walk it forward one step at a time.
-        val seen = mutableListOf<String>()
-        var cursor = 0
-        repeat(Headlines.all.size) {
-            val (i, text) = Headlines.next(cursor)
-            seen.add(text)
-            cursor = i + 1
-        }
-        assertEquals(Headlines.all.size, seen.distinct().size)
-        assertEquals(Headlines.all, seen)
-    }
 }

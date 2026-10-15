@@ -1,8 +1,6 @@
 package com.minetallest.mino.ui.chat
 
 import android.Manifest
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
 import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -19,10 +17,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -34,6 +32,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CameraAlt
@@ -43,7 +42,6 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Square
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.BottomSheetDefaults
@@ -52,8 +50,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -79,7 +75,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.minetallest.mino.domain.Refusals
-import com.minetallest.mino.domain.Schedule
 import com.minetallest.mino.ui.theme.LocalMinoColors
 import com.minetallest.mino.util.VoiceInput
 import kotlinx.coroutines.delay
@@ -91,7 +86,6 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
-import java.util.Calendar
 
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -106,7 +100,6 @@ fun Composer(viewModel: ChatViewModel, onNavigate: ((String) -> Unit)? = null) {
     val focusManager = LocalFocusManager.current
 
     var toolsOpen by remember { mutableStateOf(false) }
-    var scheduleOpen by remember { mutableStateOf(false) }
     val voice = remember { VoiceInput(context) }
     DisposableEffect(Unit) { onDispose { voice.stop() } }
 
@@ -153,46 +146,6 @@ fun Composer(viewModel: ChatViewModel, onNavigate: ((String) -> Unit)? = null) {
                     onDismiss = { viewModel.clearRateLimit() },
                 )
             }
-
-        // Scheduled chips (spec §6.7)
-        if (ui.scheduled.isNotEmpty()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = 4.dp),
-            ) {
-                ui.scheduled.forEach { item ->
-                    Row(
-                        modifier = Modifier
-                            .padding(end = 6.dp)
-                            .clip(CircleShape)
-                            .background(colors.bgRaised)
-                            .padding(start = 8.dp, end = 4.dp, top = 5.dp, bottom = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(Icons.Filled.AccessTime, null, tint = colors.textLow, modifier = Modifier.size(11.dp))
-                        Text(
-                            text = " ${Schedule.chipLabel(System.currentTimeMillis(), item.sendAt)}",
-                            color = colors.textMid,
-                            fontSize = 10.sp,
-                        )
-                        Text(
-                            text = "  " + item.content.take(24),
-                            color = colors.textLow,
-                            fontSize = 10.sp,
-                            maxLines = 1,
-                            modifier = Modifier.widthIn(max = 110.dp),
-                        )
-                        Icon(
-                            Icons.Filled.Close,
-                            contentDescription = "Cancel",
-                            tint = colors.textMid,
-                            modifier = Modifier.padding(start = 4.dp).size(11.dp).clip(CircleShape).clickable {
-                                viewModel.cancelSchedule(item.id)
-                            },
-                        )
-                    }
-                }
-            }
-        }
 
         // Image-mode strip (spec §6.7)
         if (composer.imageMode) {
@@ -440,7 +393,7 @@ fun Composer(viewModel: ChatViewModel, onNavigate: ((String) -> Unit)? = null) {
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        if (ui.streaming) Icons.Filled.Stop else Icons.Filled.Send,
+                        if (ui.streaming) Icons.Filled.Stop else Icons.Filled.ArrowUpward,
                         contentDescription = if (ui.streaming) "Stop" else "Send",
                         tint = when {
                             ui.streaming -> Color(0xFFEF5350)
@@ -585,59 +538,6 @@ private fun ToolsRow(
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.padding(start = 16.dp).weight(1f),
-        )
-    }
-}
-
-/** Spec §6.7 — send later: presets + custom picker with floor = now + 60 s. */
-@Composable
-private fun ScheduleMenu(
-    expanded: Boolean,
-    text: String,
-    onDismiss: () -> Unit,
-    onSchedule: (Long) -> Unit,
-) {
-    val colors = LocalMinoColors.current
-    val context = LocalContext.current
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss, modifier = Modifier.width(286.dp)) {
-        Schedule.presets.forEach { preset ->
-            DropdownMenuItem(
-                text = { Text(preset.label, fontSize = 13.sp) },
-                onClick = { onSchedule(preset.sendAt(System.currentTimeMillis())) },
-            )
-        }
-        DropdownMenuItem(
-            text = { Text("Pick date & time…", fontSize = 13.sp) },
-            onClick = {
-                val floor = Calendar.getInstance().apply { timeInMillis = Schedule.floor(System.currentTimeMillis()) }
-                DatePickerDialog(
-                    context,
-                    { _, year, month, day ->
-                        TimePickerDialog(
-                            context,
-                            { _, hour, minute ->
-                                val picked = Calendar.getInstance().apply {
-                                    set(year, month, day, hour, minute, 0)
-                                    set(Calendar.MILLISECOND, 0)
-                                }.timeInMillis
-                                onSchedule(maxOf(picked, Schedule.floor(System.currentTimeMillis())))
-                            },
-                            floor.get(Calendar.HOUR_OF_DAY),
-                            floor.get(Calendar.MINUTE),
-                            false,
-                        ).show()
-                    },
-                    floor.get(Calendar.YEAR),
-                    floor.get(Calendar.MONTH),
-                    floor.get(Calendar.DAY_OF_MONTH),
-                ).show()
-            },
-        )
-        androidx.compose.material3.Text(
-            "Fires from this app while it is open — keep it open if the timing matters.",
-            fontSize = 10.sp,
-            color = colors.textLow,
-            modifier = androidx.compose.ui.Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
         )
     }
 }

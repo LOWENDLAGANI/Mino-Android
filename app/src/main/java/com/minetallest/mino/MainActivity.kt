@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
                     initializer { ChatViewModel(container) }
                 },
             )
-            MinoTheme(dark = true) {
+            MinoTheme {
                 MinoRoot(viewModel)
             }
         }

@@ -25,7 +25,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Delete
@@ -136,7 +136,7 @@ fun SettingsScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
                     onClick = onBack,
                     modifier = Modifier.size(36.dp),
                 ) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
                 }
                 Text(
                     text = "Settings",

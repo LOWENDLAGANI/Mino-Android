@@ -9,7 +9,6 @@ import com.minetallest.mino.domain.ChatFolder
 import com.minetallest.mino.domain.ChatMessage
 import com.minetallest.mino.domain.Memory
 import com.minetallest.mino.domain.Rules
-import com.minetallest.mino.domain.ScheduledMessage
 import com.minetallest.mino.domain.TrashEntry
 import com.minetallest.mino.domain.Variants
 import kotlinx.coroutines.flow.Flow
@@ -31,8 +30,6 @@ class ChatRepository(private val db: MinoDatabase) {
 
     val folders: Flow<List<ChatFolder>> = db.folderDao().observeAll().map { it.map { f -> f.toDomain() } }
     val memories: Flow<List<Memory>> = db.memoryDao().observeAll().map { it.map { m -> m.toDomain() } }
-    val scheduled: Flow<List<ScheduledMessage>> =
-        db.scheduledDao().observeAll().map { it.map { s -> s.toDomain() } }
     val trash: Flow<List<TrashEntry>> = db.trashDao().observeAll().map { it.map { t -> t.toDomain() } }
 
     fun messagesFor(chatId: String): Flow<List<ChatMessage>> =
@@ -146,10 +143,6 @@ class ChatRepository(private val db: MinoDatabase) {
     suspend fun allMemories(): List<Memory> = db.memoryDao().all().map { it.toDomain() }
     suspend fun clearMemories() = db.memoryDao().clear()
 
-    suspend fun schedule(item: ScheduledMessage) = db.scheduledDao().upsert(item.toEntity())
-    suspend fun unschedule(id: String) = db.scheduledDao().delete(id)
-    suspend fun allScheduled(): List<ScheduledMessage> = db.scheduledDao().all().map { it.toDomain() }
-
     /** Backup export/import (spec §6.5 footer, #31). */
     suspend fun exportBackup(now: Long): String =
         Backup.export(allChats(), allMessages(), now)
@@ -176,7 +169,6 @@ class ChatRepository(private val db: MinoDatabase) {
         db.messageDao().clear()
         db.chatDao().clear()
         db.folderDao().clear()
-        db.scheduledDao().clear()
         db.trashDao().clear()
         db.memoryDao().clear()
     }

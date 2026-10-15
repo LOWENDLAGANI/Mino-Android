@@ -110,24 +110,6 @@ interface FolderDao {
 }
 
 @Dao
-interface ScheduledDao {
-    @Query("SELECT * FROM scheduled ORDER BY sendAt ASC")
-    fun observeAll(): Flow<List<ScheduledEntity>>
-
-    @Query("SELECT * FROM scheduled ORDER BY sendAt ASC")
-    suspend fun all(): List<ScheduledEntity>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(item: ScheduledEntity)
-
-    @Query("DELETE FROM scheduled WHERE id = :id")
-    suspend fun delete(id: String)
-
-    @Query("DELETE FROM scheduled")
-    suspend fun clear()
-}
-
-@Dao
 interface TrashDao {
     @Query("SELECT * FROM trash ORDER BY deletedAt DESC")
     fun observeAll(): Flow<List<TrashEntity>>

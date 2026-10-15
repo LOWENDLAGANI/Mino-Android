@@ -7,10 +7,7 @@ import com.minetallest.mino.domain.DocumentAttachment
 import com.minetallest.mino.domain.GeneratedImage
 import com.minetallest.mino.domain.ImageAttachment
 import com.minetallest.mino.domain.Memory
-import com.minetallest.mino.domain.ModeId
 import com.minetallest.mino.domain.Role
-import com.minetallest.mino.domain.ScheduledMessage
-import com.minetallest.mino.domain.SearchMode
 import com.minetallest.mino.domain.SearchSource
 import com.minetallest.mino.domain.TokenUsage
 import com.minetallest.mino.domain.TrashEntry
@@ -94,30 +91,6 @@ object Mappers {
     fun Memory.toEntity() = MemoryEntity(id, text, createdAt, updatedAt)
     fun FolderEntity.toDomain() = ChatFolder(id, name, createdAt)
     fun ChatFolder.toEntity() = FolderEntity(id, name, createdAt)
-
-    fun ScheduledEntity.toDomain() = ScheduledMessage(
-        id = id,
-        chatId = chatId,
-        content = content,
-        images = decodeImages(images),
-        documents = decodeDocs(documents),
-        mode = ModeId.fromStored(mode),
-        searchMode = SearchMode.fromWire(searchMode),
-        sendAt = sendAt,
-        createdAt = createdAt,
-    )
-
-    fun ScheduledMessage.toEntity() = ScheduledEntity(
-        id = id,
-        chatId = chatId,
-        content = content,
-        mode = mode.wire,
-        searchMode = searchMode.wire,
-        sendAt = sendAt,
-        createdAt = createdAt,
-        images = encodeImages(images),
-        documents = encodeDocs(documents),
-    )
 
     fun TrashEntity.toDomain() = TrashEntry(
         id = id,
