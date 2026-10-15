@@ -82,6 +82,14 @@ class ChatRepository(private val db: MinoDatabase) {
         db.folderDao().delete(folderId)
     }
 
+    suspend fun renameFolder(folderId: String, newName: String) {
+        val normalized = Rules.normalizeFolderName(newName) ?: return
+        val existing = db.folderDao().all()
+        if (existing.any { it.id != folderId && Rules.folderNameClash(it.name, normalized) }) return
+        val entity = existing.firstOrNull { it.id == folderId } ?: return
+        db.folderDao().upsert(entity.copy(name = normalized))
+    }
+
     /** Insert or replace a message row verbatim (streaming updates, variant moves). */
     suspend fun putMessage(message: ChatMessage) = db.messageDao().upsert(message.toEntity())
 

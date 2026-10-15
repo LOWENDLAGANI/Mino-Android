@@ -43,6 +43,10 @@ import com.minetallest.mino.ui.theme.LocalMinoColors
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.size
 
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
+
 /** Spec §11.6 — the Dew wallet opens /plus, with redeem and legacy plan grants below. */
 @Composable
 fun PlusScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
@@ -54,14 +58,22 @@ fun PlusScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
     var code by remember { mutableStateOf("") }
     var redeemState by remember { mutableStateOf<String?>(null) }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.background)
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
+            .statusBarsPadding()
+            .navigationBarsPadding(),
+        contentAlignment = Alignment.TopCenter,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = 680.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.Filled.ArrowBack,
                 contentDescription = "Back",
@@ -107,16 +119,16 @@ fun PlusScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
                 )
             }
             Text(
-                text = "1 Dew ≈ US$0.01 of model use. Chat bills per token " +
-                    "(fast: 0.015 in / 0.06 out per 1k · pro: 0.25 in / 1.00 out per 1k). " +
-                    "Images cost 1 Dew each.",
+                text = "Chat and image uses dew." +
+                    " input : 0.015 output : 0.06 per 1k." +
+                    " Image generation eats up 1 dew",
                 color = colors.textMid,
                 fontSize = 12.sp,
                 lineHeight = 17.sp,
                 modifier = Modifier.padding(top = 8.dp),
             )
             Text(
-                text = "Top-ups: 25 · 100 · 500 · 1000 Dew — paid by QR transfer and granted by the Mino owner, or by a redeem code.",
+                text = "Top up to use more ",
                 color = colors.textLow,
                 fontSize = 11.sp,
                 lineHeight = 15.sp,
@@ -133,7 +145,7 @@ fun PlusScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
                 .background(colors.bgRaised)
                 .padding(18.dp),
         ) {
-            Text("Redeem a code", color = colors.textHi, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text("Redeem", color = colors.textHi, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             BasicTextField(
                 value = code,
                 onValueChange = { code = it.uppercase() },
@@ -158,7 +170,7 @@ fun PlusScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
                     .background(colors.bgElevated)
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 decorationBox = { inner ->
-                    if (code.isEmpty()) Text("ENTER CODE", color = colors.textLow, fontSize = 13.sp, letterSpacing = 1.5.sp)
+                    if (code.isEmpty()) Text("TEST", color = colors.textLow, fontSize = 13.sp, letterSpacing = 1.5.sp)
                     inner()
                 },
             )
@@ -240,4 +252,5 @@ fun PlusScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
     }
+}
 }

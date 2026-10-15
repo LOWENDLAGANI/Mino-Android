@@ -28,10 +28,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import com.minetallest.mino.net.DevNote
 import com.minetallest.mino.ui.chat.ChatViewModel
 import com.minetallest.mino.ui.theme.LocalMinoColors
-import androidx.compose.foundation.layout.size
 
 /** Spec §10.12 — News from developers: public config notes, newest first. */
 @Composable
@@ -39,14 +43,22 @@ fun NotesScreen(onBack: () -> Unit) {
     val colors = LocalMinoColors.current
     var opened by remember { mutableStateOf<String?>(null) }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.background)
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
+            .statusBarsPadding()
+            .navigationBarsPadding(),
+        contentAlignment = Alignment.TopCenter,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = 680.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.Filled.ArrowBack,
                 contentDescription = "Back",
@@ -78,6 +90,7 @@ fun NotesScreen(onBack: () -> Unit) {
             )
         }
     }
+}
 }
 
 @Composable

@@ -36,6 +36,8 @@ import com.minetallest.mino.domain.Refusals
 import com.minetallest.mino.ui.chat.ChatViewModel
 import com.minetallest.mino.ui.theme.LocalMinoColors
 
+import androidx.compose.foundation.layout.widthIn
+
 /** Spec §6.8 — "Remember this" dialog with the guard's amber rejection notice. */
 @Composable
 fun RememberDialog(viewModel: ChatViewModel) {
@@ -53,7 +55,8 @@ fun RememberDialog(viewModel: ChatViewModel) {
         Column(
             modifier = Modifier
                 .padding(16.dp)
-                .width(420.dp)
+                .fillMaxWidth()
+                .widthIn(max = 480.dp)
                 .clip(RoundedCornerShape(24.dp))
                 .background(colors.bgRaised)
                 .clickable { }

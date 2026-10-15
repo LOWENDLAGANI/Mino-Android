@@ -35,20 +35,32 @@ import androidx.compose.ui.unit.sp
 import com.minetallest.mino.R
 import com.minetallest.mino.ui.theme.LocalMinoColors
 
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
+
 /** Spec §10.13 — Donate: DuitNow QR, caption, presets 5/10/20/50 RM. */
 @Composable
 fun DonateScreen(onBack: () -> Unit) {
     val colors = LocalMinoColors.current
     var preset by remember { mutableStateOf<Int?>(null) }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.background)
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
+            .statusBarsPadding()
+            .navigationBarsPadding(),
+        contentAlignment = Alignment.TopCenter,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = 680.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.Filled.ArrowBack,
                 contentDescription = "Back",
@@ -129,4 +141,5 @@ fun DonateScreen(onBack: () -> Unit) {
             modifier = Modifier.padding(top = 18.dp),
         )
     }
+}
 }

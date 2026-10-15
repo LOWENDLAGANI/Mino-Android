@@ -40,6 +40,10 @@ import com.minetallest.mino.domain.Rules
 import com.minetallest.mino.ui.chat.ChatViewModel
 import com.minetallest.mino.ui.theme.LocalMinoColors
 
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
+
 /**
  * Spec §6.2 — NamePrompt: one field (max 40), Save, no skip. Nothing else is reachable
  * until a display name exists (acceptance #2). Firebase Google binding is a documented
@@ -53,12 +57,15 @@ fun NamePromptScreen(viewModel: ChatViewModel) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.background),
+            .background(colors.background)
+            .statusBarsPadding()
+            .navigationBarsPadding(),
         contentAlignment = Alignment.Center,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .widthIn(max = 480.dp)
                 .padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {

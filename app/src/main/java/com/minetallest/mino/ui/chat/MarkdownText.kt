@@ -36,6 +36,10 @@ import androidx.compose.foundation.clickable
 import com.minetallest.mino.domain.Markdown
 import com.minetallest.mino.ui.theme.LocalMinoColors
 
+import androidx.compose.foundation.text.ClickableText
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.TextStyle
+
 /**
  * Markdown renderer for chat answers (spec §6.6): paragraphs, headings, fenced code
  * blocks with copy buttons, bullets, ordered lists, quotes, inline styles and links.
@@ -49,28 +53,46 @@ fun MarkdownText(
     linkColor: Color,
 ) {
     val colors = LocalMinoColors.current
+    val uriHandler = LocalUriHandler.current
     val blocks = remember(markdown) { Markdown.parse(markdown) }
+
+    fun handleUrlClick(annotated: AnnotatedString, offset: Int) {
+        annotated.getStringAnnotations(tag = "URL", start = offset, end = offset)
+            .firstOrNull()?.let { annotation ->
+                try {
+                    uriHandler.openUri(annotation.item)
+                } catch (e: Throwable) {
+                    // Ignore invalid URIs safely
+                }
+            }
+    }
+
     Column(modifier = modifier) {
         blocks.forEach { block ->
             when (block) {
-                is Markdown.Block.Heading -> Text(
-                    text = inlineToAnnotated(block.inlines, baseColor, linkColor),
-                    fontSize = when (block.level) {
+                is Markdown.Block.Heading -> {
+                    val annotated = inlineToAnnotated(block.inlines, baseColor, linkColor)
+                    val fontSize = when (block.level) {
                         1 -> 18.sp
                         2 -> 16.sp
                         else -> 15.sp
-                    },
-                    fontWeight = FontWeight.SemiBold,
-                    color = baseColor,
-                    modifier = Modifier.padding(top = 6.dp, bottom = 2.dp),
-                )
-                is Markdown.Block.Paragraph -> Text(
-                    text = inlineToAnnotated(block.inlines, baseColor, linkColor),
-                    color = baseColor,
-                    fontSize = 15.sp,
-                    lineHeight = 22.sp,
-                    modifier = Modifier.padding(vertical = 3.dp),
-                )
+                    }
+                    ClickableText(
+                        text = annotated,
+                        style = TextStyle(color = baseColor, fontSize = fontSize, fontWeight = FontWeight.SemiBold),
+                        onClick = { offset -> handleUrlClick(annotated, offset) },
+                        modifier = Modifier.padding(top = 6.dp, bottom = 2.dp),
+                    )
+                }
+                is Markdown.Block.Paragraph -> {
+                    val annotated = inlineToAnnotated(block.inlines, baseColor, linkColor)
+                    ClickableText(
+                        text = annotated,
+                        style = TextStyle(color = baseColor, fontSize = 15.sp, lineHeight = 22.sp),
+                        onClick = { offset -> handleUrlClick(annotated, offset) },
+                        modifier = Modifier.padding(vertical = 3.dp),
+                    )
+                }
                 is Markdown.Block.Code -> CodeBlock(
                     lang = block.lang,
                     code = block.code,
@@ -78,13 +100,13 @@ fun MarkdownText(
                 )
                 is Markdown.Block.Bullet -> Column(Modifier.padding(vertical = 3.dp)) {
                     block.items.forEach { item ->
+                        val annotated = inlineToAnnotated(item, baseColor, linkColor)
                         Row(Modifier.padding(vertical = 2.dp)) {
                             Text("•  ", color = baseColor, fontSize = 15.sp)
-                            Text(
-                                text = inlineToAnnotated(item, baseColor, linkColor),
-                                color = baseColor,
-                                fontSize = 15.sp,
-                                lineHeight = 22.sp,
+                            ClickableText(
+                                text = annotated,
+                                style = TextStyle(color = baseColor, fontSize = 15.sp, lineHeight = 22.sp),
+                                onClick = { offset -> handleUrlClick(annotated, offset) },
                                 modifier = Modifier.weight(1f),
                             )
                         }
@@ -92,29 +114,31 @@ fun MarkdownText(
                 }
                 is Markdown.Block.Ordered -> Column(Modifier.padding(vertical = 3.dp)) {
                     block.items.forEachIndexed { index, item ->
+                        val annotated = inlineToAnnotated(item, baseColor, linkColor)
                         Row(Modifier.padding(vertical = 2.dp)) {
                             Text("${index + 1}.  ", color = baseColor, fontSize = 15.sp)
-                            Text(
-                                text = inlineToAnnotated(item, baseColor, linkColor),
-                                color = baseColor,
-                                fontSize = 15.sp,
-                                lineHeight = 22.sp,
+                            ClickableText(
+                                text = annotated,
+                                style = TextStyle(color = baseColor, fontSize = 15.sp, lineHeight = 22.sp),
+                                onClick = { offset -> handleUrlClick(annotated, offset) },
                                 modifier = Modifier.weight(1f),
                             )
                         }
                     }
                 }
-                is Markdown.Block.Quote -> Text(
-                    text = inlineToAnnotated(block.inlines, colors.textMid, linkColor),
-                    color = colors.textMid,
-                    fontSize = 14.sp,
-                    lineHeight = 21.sp,
-                    modifier = Modifier
-                        .padding(vertical = 4.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(colors.bgRaised)
-                        .padding(10.dp),
-                )
+                is Markdown.Block.Quote -> {
+                    val annotated = inlineToAnnotated(block.inlines, colors.textMid, linkColor)
+                    ClickableText(
+                        text = annotated,
+                        style = TextStyle(color = colors.textMid, fontSize = 14.sp, lineHeight = 21.sp),
+                        onClick = { offset -> handleUrlClick(annotated, offset) },
+                        modifier = Modifier
+                            .padding(vertical = 4.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(colors.bgRaised)
+                            .padding(10.dp),
+                    )
+                }
                 Markdown.Block.Rule -> Text(
                     text = "────────────────",
                     color = colors.textLow,

@@ -33,6 +33,8 @@ import com.minetallest.mino.ui.theme.LocalMinoColors
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.getValue
 
+import androidx.compose.foundation.layout.widthIn
+
 /** Spec §10.4 — Trash: 30 days on-device, restore or delete permanently. */
 @Composable
 fun TrashOverlay(viewModel: ChatViewModel) {
@@ -50,7 +52,8 @@ fun TrashOverlay(viewModel: ChatViewModel) {
         Column(
             modifier = Modifier
                 .padding(24.dp)
-                .width(480.dp)
+                .fillMaxWidth()
+                .widthIn(max = 520.dp)
                 .clip(RoundedCornerShape(24.dp))
                 .background(colors.menuBackground)
                 .clickable { }

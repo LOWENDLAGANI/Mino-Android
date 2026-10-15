@@ -26,8 +26,7 @@ class MainActivity : ComponentActivity() {
                     initializer { ChatViewModel(container) }
                 },
             )
-            val ui by viewModel.ui.collectAsStateWithLifecycle()
-            MinoTheme(dark = ui.appearance != "light") {
+            MinoTheme(dark = true) {
                 MinoRoot(viewModel)
             }
         }

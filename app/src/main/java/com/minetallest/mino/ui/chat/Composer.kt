@@ -16,12 +16,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -32,16 +35,23 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Mic
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Square
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -83,9 +93,12 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import java.util.Calendar
 
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+
 /** Spec §6.7 — composer: `[+ tools] [textarea] [clock] [send/stop]` in one rounded shell. */
 @Composable
-fun Composer(viewModel: ChatViewModel) {
+fun Composer(viewModel: ChatViewModel, onNavigate: ((String) -> Unit)? = null) {
     val colors = LocalMinoColors.current
     val context = LocalContext.current
     val ui by viewModel.ui.collectAsStateWithLifecycle()
@@ -118,20 +131,28 @@ fun Composer(viewModel: ChatViewModel) {
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(colors.pageBackground)
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .navigationBarsPadding()
+            .imePadding(),
+        contentAlignment = Alignment.Center,
     ) {
-        // Rate-limit banner (spec §6.7)
-        composer.rateLimitUntil?.let { until ->
-            RateLimitBanner(
-                until = until,
-                onQueue = { viewModel.queueUntilRateLimitLifts() },
-                onDismiss = { viewModel.clearRateLimit() },
-            )
-        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 800.dp)
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+        ) {
+            // Rate-limit banner (spec §6.7)
+            composer.rateLimitUntil?.let { until ->
+                RateLimitBanner(
+                    until = until,
+                    onQueue = { viewModel.queueUntilRateLimitLifts() },
+                    onDismiss = { viewModel.clearRateLimit() },
+                )
+            }
 
         // Scheduled chips (spec §6.7)
         if (ui.scheduled.isNotEmpty()) {
@@ -265,66 +286,20 @@ fun Composer(viewModel: ChatViewModel) {
             )
         }
 
-        // Shell
-        Row(
+        // Input Card Container (Claude Style)
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(26.dp))
-                .background(colors.composerShell)
-                .padding(8.dp),
-            verticalAlignment = Alignment.Bottom,
+                .clip(RoundedCornerShape(20.dp))
+                .background(Color(0xFF1E1E22))
+                .border(1.dp, Color(0xFF27272A), RoundedCornerShape(20.dp))
+                .padding(12.dp),
         ) {
-            Box {
-                Icon(
-                    Icons.Filled.Add,
-                    contentDescription = "Tools",
-                    tint = colors.textMid,
-                    modifier = Modifier
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(colors.bgElevated)
-                        .clickable { toolsOpen = true }
-                        .padding(8.dp),
-                )
-                ToolsMenu(
-                    expanded = toolsOpen,
-                    imageUnavailable = ui.availability?.imageAvailable == false,
-                    onDismiss = { toolsOpen = false },
-                    onCamera = {
-                        toolsOpen = false
-                        val uri = newCameraUri(context)
-                        pendingCameraUri = uri
-                        if (uri != null) cameraLauncher.launch(uri)
-                    },
-                    onGallery = {
-                        toolsOpen = false
-                        galleryLauncher.launch("image/*")
-                    },
-                    onFiles = {
-                        toolsOpen = false
-                        filesLauncher.launch(arrayOf("text/plain", "text/markdown", "text/csv", "application/json", "text/*", "*/*"))
-                    },
-                    onDonate = { toolsOpen = false },
-                    onVoice = {
-                        toolsOpen = false
-                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                            startVoice(voice, viewModel)
-                        } else {
-                            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                        }
-                    },
-                    onRemember = {
-                        toolsOpen = false
-                        viewModel.setRememberDialog(true)
-                    },
-                    onImageMode = {
-                        toolsOpen = false
-                        viewModel.toggleImageMode(true)
-                    },
-                )
-            }
-
-            Box(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+            ) {
                 if (composer.text.isEmpty()) {
                     Text(
                         text = when {
@@ -332,19 +307,18 @@ fun Composer(viewModel: ChatViewModel) {
                             composer.imageMode -> "Describe the image to create…"
                             else -> "Ask Mino anything…"
                         },
-                        color = colors.textLow,
-                        fontSize = 16.sp,
-                        modifier = Modifier.padding(vertical = 12.dp),
+                        color = Color(0xFFA1A1AA),
+                        fontSize = 15.sp,
+                        modifier = Modifier.padding(vertical = 4.dp),
                     )
                 }
                 BasicTextField(
                     value = composer.text,
                     onValueChange = { viewModel.setComposerText(it) },
-                    textStyle = TextStyle(color = colors.textHi, fontSize = 16.sp, lineHeight = 22.sp),
-                    // Enter sends; Shift+Enter (and Enter on a multiline IME) does not (spec #4).
+                    textStyle = TextStyle(color = Color(0xFFF4F4F5), fontSize = 15.sp, lineHeight = 22.sp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 40.dp, max = 180.dp)
+                        .heightIn(min = 36.dp, max = 180.dp)
                         .onKeyEvent { event ->
                             val isEnter = event.key == Key.Enter || event.key == Key.NumPadEnter
                             if (event.type == KeyEventType.KeyDown && isEnter && !event.isShiftPressed) {
@@ -363,59 +337,123 @@ fun Composer(viewModel: ChatViewModel) {
                 )
             }
 
-            if (composer.text.isNotBlank() && !composer.imageMode) {
-                Icon(
-                    Icons.Filled.AccessTime,
-                    contentDescription = "Send later",
-                    tint = colors.textMid,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .clickable { scheduleOpen = true }
-                        .padding(7.dp),
-                )
-                ScheduleMenu(
-                    expanded = scheduleOpen,
-                    text = composer.text,
-                    onDismiss = { scheduleOpen = false },
-                    onSchedule = { sendAt ->
-                        scheduleOpen = false
-                        viewModel.scheduleMessage(composer.text, sendAt)
-                    },
-                )
-            }
+            Spacer(Modifier.height(10.dp))
 
-            // Send / Stop: circular 48dp (spec §6.7)
-            val canSend = composer.text.isNotBlank() || composer.images.isNotEmpty()
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(
-                        when {
-                            ui.streaming -> colors.bgElevated
-                            canSend -> colors.primaryButton
-                            else -> Color.Transparent
+            // Bottom Docked Controls inside Input Card
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box {
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = "Tools",
+                        tint = Color(0xFFA1A1AA),
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF27272A))
+                            .clickable { toolsOpen = true }
+                            .padding(7.dp),
+                    )
+                    ToolsMenu(
+                        expanded = toolsOpen,
+                        imageUnavailable = ui.availability?.imageAvailable == false,
+                        onDismiss = { toolsOpen = false },
+                        onCamera = {
+                            toolsOpen = false
+                            val uri = newCameraUri(context)
+                            pendingCameraUri = uri
+                            if (uri != null) cameraLauncher.launch(uri)
+                        },
+                        onGallery = {
+                            toolsOpen = false
+                            galleryLauncher.launch("image/*")
+                        },
+                        onFiles = {
+                            toolsOpen = false
+                            filesLauncher.launch(arrayOf("text/plain", "text/markdown", "text/csv", "application/json", "text/*", "*/*"))
+                        },
+                        onDonate = {
+                            toolsOpen = false
+                            onNavigate?.invoke("donate")
+                        },
+                        onVoice = {
+                            toolsOpen = false
+                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                                startVoice(voice, viewModel)
+                            } else {
+                                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            }
+                        },
+                        onRemember = {
+                            toolsOpen = false
+                            viewModel.setRememberDialog(true)
+                        },
+                        onImageMode = {
+                            toolsOpen = false
+                            viewModel.toggleImageMode(true)
                         },
                     )
-                    .clickable(enabled = ui.streaming || canSend) {
-                        if (ui.streaming) viewModel.stopStream() else viewModel.sendFromComposer()
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
+                }
+
+                Spacer(Modifier.width(8.dp))
+
+                // Docked Model Selector Pill
+                ModeSelector(viewModel = viewModel)
+
+                Spacer(Modifier.weight(1f))
+
                 Icon(
-                    if (ui.streaming) Icons.Filled.Stop else Icons.Filled.Send,
-                    contentDescription = if (ui.streaming) "Stop" else "Send",
-                    tint = when {
-                        ui.streaming -> colors.danger
-                        canSend -> Color.White
-                        else -> colors.textLow
-                    },
-                    modifier = Modifier.size(18.dp),
+                    Icons.Filled.Mic,
+                    contentDescription = "Voice Input",
+                    tint = Color(0xFFA1A1AA),
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .clickable {
+                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                                startVoice(voice, viewModel)
+                            } else {
+                                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            }
+                        }
+                        .padding(7.dp),
                 )
+
+                val canSend = composer.text.isNotBlank() || composer.images.isNotEmpty()
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(
+                            when {
+                                ui.streaming -> Color(0xFF27272A)
+                                canSend -> Color(0xFFF4F4F5)
+                                else -> Color(0xFF27272A)
+                            },
+                        )
+                        .clickable(enabled = ui.streaming || canSend) {
+                            if (ui.streaming) viewModel.stopStream() else viewModel.sendFromComposer()
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        if (ui.streaming) Icons.Filled.Stop else Icons.Filled.Send,
+                        contentDescription = if (ui.streaming) "Stop" else "Send",
+                        tint = when {
+                            ui.streaming -> Color(0xFFEF5350)
+                            canSend -> Color(0xFF121212)
+                            else -> Color(0xFFA1A1AA)
+                        },
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
             }
         }
     }
+}
 }
 
 private var pendingCameraUri: Uri? = null
@@ -445,7 +483,8 @@ private fun startVoice(voice: VoiceInput, viewModel: ChatViewModel) {
 }
 
 
-/** Spec §6.7 — `+` tools menu, exact item order. */
+/** Attachment / Action Menu Bottom Sheet (Claude / ChatGPT style). */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ToolsMenu(
     expanded: Boolean,
@@ -459,57 +498,93 @@ private fun ToolsMenu(
     onRemember: () -> Unit,
     onImageMode: () -> Unit,
 ) {
-    val colors = LocalMinoColors.current
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss, modifier = Modifier.width(286.dp)) {
-        DropdownMenuItem(text = { Text("Camera", fontSize = 13.sp) }, onClick = onCamera, leadingIcon = {
-            Icon(Icons.Filled.CameraAlt, null, tint = colors.textMid, modifier = Modifier.size(16.dp))
-        })
-        DropdownMenuItem(text = { Text("Gallery", fontSize = 13.sp) }, onClick = onGallery, leadingIcon = {
-            Icon(Icons.Filled.Image, null, tint = colors.textMid, modifier = Modifier.size(16.dp))
-        })
-        DropdownMenuItem(text = { Text("Files", fontSize = 13.sp) }, onClick = onFiles, leadingIcon = {
-            Icon(Icons.Filled.Description, null, tint = colors.textMid, modifier = Modifier.size(16.dp))
-        })
-        DropdownMenuItem(
-            text = { Text("Support Mino", fontSize = 13.sp) },
-            onClick = onDonate,
-            leadingIcon = { Icon(Icons.Filled.Favorite, null, tint = Color(0xFFE58FA5), modifier = Modifier.size(16.dp)) },
-            trailingIcon = {
-                Text(
-                    "Donate",
-                    fontSize = 10.sp,
-                    color = Color(0xFFE58FA5),
-                    modifier = Modifier.clip(CircleShape).background(Color(0x22E58FA5)).padding(horizontal = 8.dp, vertical = 3.dp),
-                )
-            },
+    if (!expanded) return
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        containerColor = Color(0xFF1E1E22),
+        scrimColor = Color.Black.copy(alpha = 0.6f),
+        dragHandle = {
+            BottomSheetDefaults.DragHandle(color = Color(0xFFA1A1AA))
+        },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        ) {
+            ToolsRow(
+                icon = Icons.Filled.CameraAlt,
+                title = "Camera",
+                onClick = onCamera,
+            )
+            ToolsRow(
+                icon = Icons.Filled.Image,
+                title = "Gallery",
+                onClick = onGallery,
+            )
+            ToolsRow(
+                icon = Icons.Filled.Description,
+                title = "Files",
+                onClick = onFiles,
+            )
+            ToolsRow(
+                icon = Icons.Filled.Mic,
+                title = "Voice Input",
+                onClick = onVoice,
+            )
+            ToolsRow(
+                icon = Icons.Filled.Psychology,
+                title = "Remember This",
+                onClick = onRemember,
+            )
+            ToolsRow(
+                icon = Icons.Filled.AutoAwesome,
+                title = "Create Image",
+                onClick = onImageMode,
+            )
+            ToolsRow(
+                icon = Icons.Filled.Favorite,
+                title = "Support Mino",
+                onClick = onDonate,
+            )
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun ToolsRow(
+    icon: ImageVector,
+    title: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 48.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = Color(0xFFA1A1AA),
+            modifier = Modifier.size(20.dp),
         )
-        DropdownMenuItem(text = { Text("Voice input", fontSize = 13.sp) }, onClick = onVoice, leadingIcon = {
-            Icon(Icons.Filled.Mic, null, tint = colors.textMid, modifier = Modifier.size(16.dp))
-        })
-        DropdownMenuItem(text = { Text("Remember this", fontSize = 13.sp) }, onClick = onRemember, leadingIcon = {
-            Icon(Icons.Filled.Add, null, tint = colors.textMid, modifier = Modifier.size(16.dp))
-        })
-        DropdownMenuItem(
-            text = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Create image", fontSize = 13.sp)
-                    if (imageUnavailable) {
-                        Box(
-                            modifier = Modifier.padding(start = 6.dp).size(6.dp).clip(CircleShape).background(colors.amber),
-                        )
-                    }
-                }
-            },
-            onClick = onImageMode,
-            leadingIcon = { Icon(Icons.Filled.Image, null, tint = colors.code, modifier = Modifier.size(16.dp)) },
-            trailingIcon = {
-                Text(
-                    "Mini",
-                    fontSize = 10.sp,
-                    color = colors.textMid,
-                    modifier = Modifier.clip(CircleShape).background(colors.bgElevated).padding(horizontal = 8.dp, vertical = 3.dp),
-                )
-            },
+        Text(
+            text = title,
+            color = Color(0xFFF4F4F5),
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(start = 16.dp).weight(1f),
         )
     }
 }

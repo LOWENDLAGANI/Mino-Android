@@ -28,10 +28,15 @@ import com.minetallest.mino.ui.overlays.GalleryOverlay
 import com.minetallest.mino.ui.overlays.NotesPrompt
 import com.minetallest.mino.ui.overlays.RememberDialog
 import com.minetallest.mino.ui.overlays.SearchOverlay
-import com.minetallest.mino.ui.overlays.SettingsPanel
 import com.minetallest.mino.ui.overlays.TrashOverlay
 import com.minetallest.mino.ui.plus.PlusScreen
 import com.minetallest.mino.ui.theme.LocalMinoColors
+
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
 
 /** Main shell: sidebar drawer · header · banners · thread · composer · overlays (spec §6). */
 @Composable
@@ -42,26 +47,45 @@ fun ChatScreen(viewModel: ChatViewModel) {
 
     NavHost(navController = nav, startDestination = "chat") {
         composable("chat") {
-            val drawerState = rememberDrawerState(DrawerValue.Closed)
-            LaunchedEffect(ui.drawerOpen) {
-                if (ui.drawerOpen) drawerState.open() else drawerState.close()
-            }
-            LaunchedEffect(drawerState.isOpen) {
-                if (drawerState.isOpen != ui.drawerOpen) viewModel.setDrawer(drawerState.isOpen)
-            }
-            ModalNavigationDrawer(
-                drawerState = drawerState,
-                gesturesEnabled = ui.drawerOpen,
-                drawerContent = {
-                    ModalDrawerSheet(
-                        drawerContainerColor = colors.sidebarBackground,
-                        drawerContentColor = colors.text,
-                    ) {
-                        Sidebar(viewModel = viewModel, onNavigate = { route -> nav.navigate(route) })
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                val isWideScreen = maxWidth >= 600.dp
+                if (isWideScreen) {
+                    Row(Modifier.fillMaxSize()) {
+                        Box(
+                            modifier = Modifier
+                                .width(300.dp)
+                                .fillMaxHeight()
+                                .background(colors.sidebarBackground),
+                        ) {
+                            Sidebar(viewModel = viewModel, onNavigate = { route -> nav.navigate(route) })
+                        }
+                        Box(Modifier.weight(1f).fillMaxHeight()) {
+                            ChatPage(viewModel = viewModel, showMenuButton = false)
+                        }
                     }
-                },
-            ) {
-                ChatPage(viewModel = viewModel)
+                } else {
+                    val drawerState = rememberDrawerState(DrawerValue.Closed)
+                    LaunchedEffect(ui.drawerOpen) {
+                        if (ui.drawerOpen) drawerState.open() else drawerState.close()
+                    }
+                    LaunchedEffect(drawerState.isOpen) {
+                        if (drawerState.isOpen != ui.drawerOpen) viewModel.setDrawer(drawerState.isOpen)
+                    }
+                    ModalNavigationDrawer(
+                        drawerState = drawerState,
+                        gesturesEnabled = true,
+                        drawerContent = {
+                            ModalDrawerSheet(
+                                drawerContainerColor = colors.sidebarBackground,
+                                drawerContentColor = colors.text,
+                            ) {
+                                Sidebar(viewModel = viewModel, onNavigate = { route -> nav.navigate(route) })
+                            }
+                        },
+                    ) {
+                        ChatPage(viewModel = viewModel, showMenuButton = true)
+                    }
+                }
             }
         }
         composable("plus") {
@@ -92,28 +116,33 @@ fun ChatScreen(viewModel: ChatViewModel) {
                 AdminScreen(viewModel = viewModel, onBack = { nav.popBackStack() })
             }
         }
+        composable("settings") {
+            Box(Modifier.fillMaxSize().background(Color(0xFF121212))) {
+                com.minetallest.mino.ui.overlays.SettingsScreen(viewModel = viewModel, onBack = { nav.popBackStack() })
+            }
+        }
     }
 
     // Overlays that live above everything (spec §6 stack).
     if (ui.searchOpen) SearchOverlay(viewModel = viewModel)
     if (ui.trashOpen) TrashOverlay(viewModel = viewModel)
     if (ui.galleryOpen) GalleryOverlay(viewModel = viewModel)
-    if (ui.settingsOpen) SettingsPanel(viewModel = viewModel)
     if (ui.rememberDialogOpen) RememberDialog(viewModel = viewModel)
-    if (ui.newNoteIds.isNotEmpty() && ui.displayName != null && ui.searchOpen.not() && ui.settingsOpen.not()) {
+    if (ui.newNoteIds.isNotEmpty() && ui.displayName != null && ui.searchOpen.not()) {
         NotesPrompt(viewModel = viewModel, onOpenNotes = { nav.navigate("notes") })
     }
 }
 
 /** Spec §6.6 — banners, notices and the scrolling thread over the composer. */
 @Composable
-private fun ChatPage(viewModel: ChatViewModel) {
+private fun ChatPage(viewModel: ChatViewModel, showMenuButton: Boolean = true) {
     val colors = LocalMinoColors.current
     val ui by viewModel.ui.collectAsStateWithLifecycle()
 
     Scaffold(
         containerColor = colors.pageBackground,
-        topBar = { ChatHeader(viewModel) },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        topBar = { ChatHeader(viewModel, showMenuButton = showMenuButton) },
         bottomBar = { Composer(viewModel) },
     ) { padding ->
         Column(

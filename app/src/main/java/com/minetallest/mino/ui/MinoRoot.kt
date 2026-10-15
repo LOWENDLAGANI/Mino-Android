@@ -39,6 +39,8 @@ import com.minetallest.mino.ui.chat.ChatViewModel
 import com.minetallest.mino.ui.theme.LocalMinoColors
 import kotlinx.coroutines.delay
 
+import androidx.compose.ui.graphics.toArgb
+
 /**
  * Startup sequence, exact order (spec §6.1):
  * 1. nothing until prefs hydrate · 2. maintenance screen · 3. account loader (only while
@@ -54,8 +56,8 @@ fun MinoRoot(viewModel: ChatViewModel) {
     // Spec §5.4 — bars follow the appearance token.
     SideEffect {
         val window = (view.context as? android.app.Activity)?.window ?: return@SideEffect
-        window.statusBarColor = colors.systemBarColor.hashCode()
-        window.navigationBarColor = colors.systemBarColor.hashCode()
+        window.statusBarColor = Color.Transparent.toArgb()
+        window.navigationBarColor = Color.Transparent.toArgb()
         WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = colors.lightStatusBar
         WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = colors.lightStatusBar
     }

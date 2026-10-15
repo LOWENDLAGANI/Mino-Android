@@ -348,6 +348,10 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
 
     fun deleteFolder(folderId: String) = viewModelScope.launch { repo.deleteFolder(folderId) }
 
+    fun renameFolder(folderId: String, name: String) = viewModelScope.launch {
+        repo.renameFolder(folderId, name)
+    }
+
     // ---------------------------------------------------------------- sending
 
     fun sendFromComposer() {

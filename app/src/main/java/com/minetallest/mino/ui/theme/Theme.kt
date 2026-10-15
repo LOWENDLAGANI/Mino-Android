@@ -46,37 +46,37 @@ data class MinoColors(
 )
 
 val DarkMinoColors = MinoColors(
-    background = Color(0xFF0B1310),
-    bgRaised = Color(0xFF111A16),
-    bgHover = Color(0xFF17221C),
-    bgElevated = Color(0xFF1A2520),
-    line = Color(0x14E9F5EC),
-    lineStrong = Color(0x24E9F5EC),
-    textHi = Color(0xFFEEF5F0),
-    text = Color(0xFFCDDFD4),
-    textMid = Color(0xFF8BA396),
-    textLow = Color(0xFF5D7167),
-    accent = Color(0xFF6EC294),
-    accentSoft = Color(0x266EC294),
-    azure = Color(0xFF5B9BD5),
-    azureSoft = Color(0x265B9BD5),
-    code = Color(0xFFE08E6B),
-    codeSoft = Color(0x26E08E6B),
-    onAccent = Color(0xFF0B1310),
-    pageBackground = Color(0xFF060A08),
-    sidebarBackground = Color(0xFF080D0A),
-    composerShell = Color(0xF21A2620),
-    menuBackground = Color(0xFA141F1A),
-    primaryButton = Color(0xFF2A6142),
-    primaryButtonHover = Color(0xFF35744F),
-    mint = Color(0xFFA9D8BB),
-    userBubble = Color(0x14FFFFFF),
-    danger = Color(0xFFF87171),
-    dangerSoft = Color(0x1AF87171),
+    background = Color(0xFF000000),
+    bgRaised = Color(0xFF1E1E22),
+    bgHover = Color(0xFF27272A),
+    bgElevated = Color(0xFF1E1E22),
+    line = Color(0xFF27272A),
+    lineStrong = Color(0xFF3F3F46),
+    textHi = Color(0xFFF4F4F5),
+    text = Color(0xFFE4E4E7),
+    textMid = Color(0xFFA1A1AA),
+    textLow = Color(0xFF71717A),
+    accent = Color(0xFFF4F4F5),
+    accentSoft = Color(0x1AF4F4F5),
+    azure = Color(0xFF60A5FA),
+    azureSoft = Color(0x1A60A5FA),
+    code = Color(0xFFF4F4F5),
+    codeSoft = Color(0x1AF4F4F5),
+    onAccent = Color(0xFF000000),
+    pageBackground = Color(0xFF000000),
+    sidebarBackground = Color(0xFF121212),
+    composerShell = Color(0xFF1E1E22),
+    menuBackground = Color(0xFF1E1E22),
+    primaryButton = Color(0xFF1E1E22),
+    primaryButtonHover = Color(0xFF27272A),
+    mint = Color(0xFFF4F4F5),
+    userBubble = Color(0x1AF4F4F5),
+    danger = Color(0xFFEF5350),
+    dangerSoft = Color(0x1AEF5350),
     amber = Color(0xFFFBBF24),
     amberSoft = Color(0x1AFBBF24),
     lightStatusBar = false,
-    systemBarColor = Color(0xFF0B1310),
+    systemBarColor = Color(0xFF000000),
 )
 
 val LightMinoColors = MinoColors(
@@ -148,7 +148,7 @@ fun MinoTheme(
     dark: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    val colors = if (dark) DarkMinoColors else LightMinoColors
+    val colors = DarkMinoColors
     CompositionLocalProvider(LocalMinoColors provides colors) {
         MaterialTheme(
             colorScheme = schemeFor(colors),
@@ -158,6 +158,6 @@ fun MinoTheme(
     }
 }
 
-/** Spec §5.4 — appearance sets system bars to dark #0b1310 / light #fbf9f2. */
+/** Spec §5.4 — appearance sets system bars to dark #000000 / light #fbf9f2. */
 fun systemBarColors(dark: Boolean): Pair<Color, Boolean> =
-    if (dark) Color(0xFF0B1310) to false else Color(0xFFFBF9F2) to true
+    if (dark) Color(0xFF000000) to false else Color(0xFFFBF9F2) to true

@@ -40,6 +40,10 @@ import com.minetallest.mino.ui.chat.ChatViewModel
 import com.minetallest.mino.ui.theme.LocalMinoColors
 import kotlinx.coroutines.launch
 
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
+
 /**
  * Spec §10.13 + §12 — About page; the logo carries the ten-tap admin trigger.
  * A non-admin is refused by the rules, never by the client.
@@ -54,14 +58,22 @@ fun AboutScreen(onBack: () -> Unit, onAdmin: () -> Unit) {
     var lastTap by remember { mutableLongStateOf(0L) }
     var adminState by remember { mutableStateOf<String?>(null) }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.background)
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
+            .statusBarsPadding()
+            .navigationBarsPadding(),
+        contentAlignment = Alignment.TopCenter,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = 680.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.Filled.ArrowBack,
                 contentDescription = "Back",
@@ -116,22 +128,19 @@ fun AboutScreen(onBack: () -> Unit, onAdmin: () -> Unit) {
 
         AboutField("Created by", "Minetallest")
         AboutField("AI name", "Mino")
-        AboutField("Modes", "Mino Auto · Mino Code · Mino Azure")
-        AboutField("Date created", "2025")
-        AboutField("Progress", "Multi-mode chat, vision, memory, Dew, admin console, Android client")
+        AboutField("Privacy", "Local Storage On Your Device")
+        AboutField("Date created", "24/9/2026")
+        AboutField("Target", "Gonna release it for public use")
 
         Text(
-            text = "Mino is a private, local-first AI assistant. It works with just a name — " +
-                "no account, ever — and keeps your conversations on your own device. When you " +
-                "do sign in, your history simply follows you. Mino answers as Mino: it never " +
-                "tells you which model is behind it, because the point is the assistant, not " +
-                "the machinery.",
+            text = "Mino is a Ai Assistant that is created by Minetallest that have multiple ai model and fallback for your convenience.",
             color = colors.textMid,
             fontSize = 13.sp,
             lineHeight = 19.sp,
             modifier = Modifier.padding(top = 18.dp),
         )
     }
+}
 }
 
 @Composable

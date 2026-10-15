@@ -39,6 +39,8 @@ import com.minetallest.mino.ui.chat.ChatViewModel
 import com.minetallest.mino.ui.theme.LocalMinoColors
 import androidx.compose.foundation.layout.size
 
+import androidx.compose.foundation.layout.widthIn
+
 /** Spec §10.5 — Gallery: every image made or sent on this device, newest first. */
 @Composable
 fun GalleryOverlay(viewModel: ChatViewModel) {
@@ -57,7 +59,8 @@ fun GalleryOverlay(viewModel: ChatViewModel) {
         Column(
             modifier = Modifier
                 .padding(24.dp)
-                .width(520.dp)
+                .fillMaxWidth()
+                .widthIn(max = 600.dp)
                 .clip(RoundedCornerShape(24.dp))
                 .background(colors.menuBackground)
                 .clickable { }

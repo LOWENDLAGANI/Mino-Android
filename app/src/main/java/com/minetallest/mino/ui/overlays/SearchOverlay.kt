@@ -39,6 +39,7 @@ import com.minetallest.mino.domain.LocalSearch
 import com.minetallest.mino.ui.chat.ChatViewModel
 import com.minetallest.mino.ui.theme.LocalMinoColors
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 
 /** Spec §10.6 — palette search: titles + message text, newest first, ≤30, opens the chat. */
 @Composable
@@ -57,7 +58,8 @@ fun SearchOverlay(viewModel: ChatViewModel) {
         Column(
             modifier = Modifier
                 .padding(top = 72.dp, start = 16.dp, end = 16.dp)
-                .width(480.dp)
+                .fillMaxWidth()
+                .widthIn(max = 520.dp)
                 .clip(RoundedCornerShape(24.dp))
                 .background(colors.menuBackground)
                 .clickable { /* consume */ }

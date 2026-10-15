@@ -1,8 +1,5 @@
 package com.minetallest.mino.ui.overlays
 
-import android.app.Activity
-import android.content.Intent
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -10,27 +7,48 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,31 +58,45 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.minetallest.mino.domain.Memory
 import com.minetallest.mino.domain.ReasoningEffort
-import com.minetallest.mino.domain.Refusals
 import com.minetallest.mino.domain.ResponseLength
-import com.minetallest.mino.domain.Rules
 import com.minetallest.mino.domain.SearchMode
 import com.minetallest.mino.ui.chat.ChatViewModel
-import com.minetallest.mino.ui.theme.LocalMinoColors
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.layout.size
 
-/** Spec §6.9 — Settings: all sections in one scrollable sheet. */
+// Strict Claude Style Monochrome Dark Palette
+private val DarkBg = Color(0xFF121212)
+private val CardSurface = Color(0xFF1E1E22)
+private val DividerColor = Color(0xFF27272A)
+private val TextPrimary = Color(0xFFF4F4F5)
+private val TextSecondary = Color(0xFFA1A1AA)
+private val DestructiveRed = Color(0xFFEF5350)
+
+/**
+ * Dedicated Settings Screen (Claude Mobile style).
+ * Full page layout with back navigation, zero subtext descriptions, and no bottom cut-off.
+ */
 @Composable
-fun SettingsPanel(viewModel: ChatViewModel) {
-    val colors = LocalMinoColors.current
+fun SettingsScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+
+    var showSearchDialog by remember { mutableStateOf(false) }
+    var showLengthDialog by remember { mutableStateOf(false) }
+    var showReasoningDialog by remember { mutableStateOf(false) }
+    var showEraseConfirmDialog by remember { mutableStateOf(false) }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri ->
         if (uri != null) {
             scope.launch {
                 val json = viewModel.exportBackup()
@@ -80,412 +112,447 @@ fun SettingsPanel(viewModel: ChatViewModel) {
 
     Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp))
-            .background(colors.bgRaised)
-            .padding(20.dp),
+            .fillMaxSize()
+            .background(DarkBg)
+            .statusBarsPadding()
+            .navigationBarsPadding(),
+        contentAlignment = Alignment.TopCenter,
     ) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState()).heightIn(max = 640.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Settings", color = colors.textHi, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                Icon(
-                    Icons.Filled.Close,
-                    contentDescription = "Close",
-                    tint = colors.textMid,
-                    modifier = Modifier.size(18.dp).clip(RoundedCornerShape(8.dp)).clickable { viewModel.setSettingsOpen(false) },
-                )
-            }
-
-            // 1. Account (spec §6.9 #1) — hidden entirely when Firebase is unconfigured.
-            if (ui.firebaseConfigured) {
-                Section("Account") {
-                    Text(
-                        text = "Signed in as a private Mino identity. Your chats follow your account.",
-                        color = colors.textMid,
-                        fontSize = 12.sp,
-                        lineHeight = 17.sp,
-                    )
-                    ui.plan?.let { plan ->
-                        Text(
-                            text = "Plan: ${plan.planId ?: "Free"}",
-                            color = colors.textLow,
-                            fontSize = 11.sp,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
-                    }
-                }
-            }
-
-            // 2. Your data (spec §6.9 #2)
-            Section("Your data") {
-                Row {
-                    SettingButton("Export backup") { exportLauncher.launch(com.minetallest.mino.domain.Backup.exportFileName(System.currentTimeMillis())) }
-                    Spacer(Modifier.width(10.dp))
-                    EraseButton(onErase = { viewModel.wipeEverything(); viewModel.setSettingsOpen(false) })
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 680.dp)
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        ) {
+            // Top App Bar Header with Back Arrow
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
                 }
                 Text(
-                    text = "Erasing clears everything on this device. Your plan is kept.",
-                    color = colors.textLow,
-                    fontSize = 11.sp,
-                    modifier = Modifier.padding(top = 6.dp),
+                    text = "Settings",
+                    color = TextPrimary,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 12.dp).weight(1f),
                 )
             }
 
-            // 3. Memories (spec §6.9 #3)
-            Section("What Mino remembers") {
-                if (ui.memories.isEmpty()) {
-                    Text("Nothing yet. Use “Remember this” in the + menu.", color = colors.textLow, fontSize = 12.sp)
-                }
-                ui.memories.forEach { memory ->
-                    MemoryRow(memory = memory, viewModel = viewModel)
-                }
-                if (ui.memories.isNotEmpty()) {
-                    Text(
-                        text = "Forget everything",
-                        color = colors.danger,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 48.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                // 1. Account Header Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardSurface),
+                ) {
+                    Row(
                         modifier = Modifier
-                            .padding(top = 6.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .clickable { viewModel.forgetEverything() }
-                            .padding(horizontal = 8.dp, vertical = 5.dp),
-                    )
-                }
-                ToggleRow(
-                    label = "Let Mino suggest memories",
-                    checked = ui.memorySuggestEnabled,
-                    onChange = { viewModel.setMemorySuggest(it) },
-                )
-            }
-
-            // 4. Web search (spec §6.9 #4)
-            Section("Web search") {
-                Segmented(
-                    options = listOf(
-                        SearchMode.AUTO to "Auto",
-                        SearchMode.ALWAYS to "On",
-                        SearchMode.OFF to "Off",
-                    ),
-                    selected = ui.searchMode,
-                    onSelect = { viewModel.setSearchMode(it) },
-                )
-                Text("Smart search when needed", color = colors.textLow, fontSize = 10.sp)
-                if (ui.availability?.searchAvailable == false) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
-                        Box(Modifier.width(6.dp).height(6.dp).clip(RoundedCornerShape(3.dp)).background(colors.amber))
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Text(
-                            "  Search is not configured on this server",
-                            color = colors.amber,
-                            fontSize = 10.sp,
+                            text = ui.displayName ?: "Private Mino Identity",
+                            color = TextPrimary,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f),
                         )
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(TextSecondary.copy(alpha = 0.15f))
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                        ) {
+                            Text(
+                                text = ui.plan?.planId ?: "Free",
+                                color = TextPrimary,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
                     }
                 }
-            }
 
-            // 5. Response length (spec §6.9 #5)
-            Section("Response length") {
-                RadioRow("Short", "Lead with the answer", ui.responseLength == ResponseLength.SHORT) { viewModel.setResponseLength(ResponseLength.SHORT) }
-                RadioRow("Balanced", "Default amount of detail", ui.responseLength == ResponseLength.BALANCED) { viewModel.setResponseLength(ResponseLength.BALANCED) }
-                RadioRow("Detailed", "Thorough with examples", ui.responseLength == ResponseLength.DETAILED) { viewModel.setResponseLength(ResponseLength.DETAILED) }
-            }
+                // 2. Preferences Group Card
+                SettingsGroup(title = "PREFERENCES") {
+                    SettingsSwitchRow(
+                        icon = Icons.Filled.Psychology,
+                        title = "Suggest Memories",
+                        checked = ui.memorySuggestEnabled,
+                        onCheckedChange = { viewModel.setMemorySuggest(it) },
+                    )
 
-            // 6. Reasoning effort (spec §11.4 — priced, not gated)
-            Section("Reasoning effort") {
-                EffortRow("Low", "Fastest, cheapest · fast tier", ui.reasoningEffort == ReasoningEffort.LOW) { viewModel.setReasoningEffort(ReasoningEffort.LOW) }
-                EffortRow("Medium", "Thinks a little harder · pro tier", ui.reasoningEffort == ReasoningEffort.MEDIUM) { viewModel.setReasoningEffort(ReasoningEffort.MEDIUM) }
-                EffortRow("High", "Slowest, most careful · pro tier", ui.reasoningEffort == ReasoningEffort.HIGH) { viewModel.setReasoningEffort(ReasoningEffort.HIGH) }
-            }
+                    HorizontalDivider(color = DividerColor)
 
-            // 7. Appearance (spec §6.9 #7)
-            Section("Appearance") {
-                Row {
-                    AppearanceCard(
-                        "dark", "Dark", ui.appearance == "dark", Modifier.weight(1f),
-                    ) { viewModel.setAppearance("dark") }
-                    Spacer(Modifier.width(10.dp))
-                    AppearanceCard(
-                        "light", "Light", ui.appearance == "light", Modifier.weight(1f),
-                    ) { viewModel.setAppearance("light") }
+                    SettingsValueRow(
+                        icon = Icons.Filled.Language,
+                        title = "Web Search",
+                        value = when (ui.searchMode) {
+                            SearchMode.AUTO -> "Auto"
+                            SearchMode.ALWAYS -> "On"
+                            SearchMode.OFF -> "Off"
+                        },
+                        onClick = { showSearchDialog = true },
+                    )
+
+                    HorizontalDivider(color = DividerColor)
+
+                    SettingsValueRow(
+                        icon = Icons.Filled.Tune,
+                        title = "Response Length",
+                        value = when (ui.responseLength) {
+                            ResponseLength.SHORT -> "Short"
+                            ResponseLength.BALANCED -> "Balanced"
+                            ResponseLength.DETAILED -> "Detailed"
+                        },
+                        onClick = { showLengthDialog = true },
+                    )
+
+                    HorizontalDivider(color = DividerColor)
+
+                    SettingsValueRow(
+                        icon = Icons.Filled.Speed,
+                        title = "Reasoning Effort",
+                        value = when (ui.reasoningEffort) {
+                            ReasoningEffort.LOW -> "Low"
+                            ReasoningEffort.MEDIUM -> "Medium"
+                            ReasoningEffort.HIGH -> "High"
+                        },
+                        onClick = { showReasoningDialog = true },
+                    )
                 }
-            }
 
-            // Android addition — server address (web build used its own origin).
-            Section("Server") {
-                var base by remember(ui.apiBase) { mutableStateOf(ui.apiBase) }
-                BasicTextField(
-                    value = base,
-                    onValueChange = { base = it },
-                    singleLine = true,
-                    textStyle = TextStyle(color = colors.textHi, fontSize = 13.sp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(colors.bgElevated)
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    decorationBox = { inner ->
-                        if (base.isEmpty()) {
-                            Text("https://your-mino-server.example", color = colors.textLow, fontSize = 13.sp)
+                // 3. Data & Privacy Group Card
+                SettingsGroup(title = "YOUR DATA") {
+                    SettingsActionRow(
+                        icon = Icons.Filled.Download,
+                        title = "Export Backup",
+                        onClick = {
+                            exportLauncher.launch(com.minetallest.mino.domain.Backup.exportFileName(System.currentTimeMillis()))
+                        },
+                    )
+
+                    HorizontalDivider(color = DividerColor)
+
+                    SettingsActionRow(
+                        icon = Icons.Filled.Delete,
+                        title = "Erase Everything",
+                        tint = DestructiveRed,
+                        onClick = { showEraseConfirmDialog = true },
+                    )
+                }
+
+                // 4. Server Group Card
+                SettingsGroup(title = "SERVER") {
+                    var base by remember(ui.apiBase) { mutableStateOf(ui.apiBase) }
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Server Address", color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        Spacer(Modifier.height(8.dp))
+                        BasicTextField(
+                            value = base,
+                            onValueChange = { base = it },
+                            singleLine = true,
+                            textStyle = TextStyle(color = TextPrimary, fontSize = 13.sp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(DarkBg)
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            decorationBox = { inner ->
+                                if (base.isEmpty()) {
+                                    Text("https://your-mino-server.example", color = TextSecondary, fontSize = 13.sp)
+                                }
+                                inner()
+                            },
+                        )
+                        TextButton(
+                            onClick = { viewModel.setApiBase(base) },
+                            modifier = Modifier.align(Alignment.End).padding(top = 4.dp),
+                        ) {
+                            Text("Save Address", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
-                        inner()
-                    },
-                )
-                SettingButton("Save address") { viewModel.setApiBase(base) }
+                    }
+                }
+
                 Text(
-                    text = "Point this app at your Mino deployment. Leave empty for local-only use.",
-                    color = colors.textLow,
-                    fontSize = 10.sp,
-                    lineHeight = 14.sp,
-                    modifier = Modifier.padding(top = 6.dp),
+                    text = "Mino AI · Local-First",
+                    color = TextSecondary,
+                    fontSize = 11.sp,
+                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(vertical = 12.dp),
                 )
             }
-
-            Spacer(Modifier.height(16.dp))
-            Text(
-                text = "Mino · Created by Minetallest",
-                color = colors.textLow,
-                fontSize = 10.sp,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            )
         }
+    }
+
+    // Selection Dialogs
+    if (showSearchDialog) {
+        OptionSelectionDialog(
+            title = "Web Search Mode",
+            options = listOf(
+                SearchMode.AUTO to "Auto",
+                SearchMode.ALWAYS to "On",
+                SearchMode.OFF to "Off",
+            ),
+            selected = ui.searchMode,
+            onSelect = {
+                viewModel.setSearchMode(it)
+                showSearchDialog = false
+            },
+            onDismiss = { showSearchDialog = false },
+        )
+    }
+
+    if (showLengthDialog) {
+        OptionSelectionDialog(
+            title = "Response Length",
+            options = listOf(
+                ResponseLength.SHORT to "Short",
+                ResponseLength.BALANCED to "Balanced",
+                ResponseLength.DETAILED to "Detailed",
+            ),
+            selected = ui.responseLength,
+            onSelect = {
+                viewModel.setResponseLength(it)
+                showLengthDialog = false
+            },
+            onDismiss = { showLengthDialog = false },
+        )
+    }
+
+    if (showReasoningDialog) {
+        OptionSelectionDialog(
+            title = "Reasoning Effort",
+            options = listOf(
+                ReasoningEffort.LOW to "Low",
+                ReasoningEffort.MEDIUM to "Medium",
+                ReasoningEffort.HIGH to "High",
+            ),
+            selected = ui.reasoningEffort,
+            onSelect = {
+                viewModel.setReasoningEffort(it)
+                showReasoningDialog = false
+            },
+            onDismiss = { showReasoningDialog = false },
+        )
+    }
+
+    if (showEraseConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showEraseConfirmDialog = false },
+            title = { Text("Erase All Data?", color = TextPrimary) },
+            text = { Text("Permanently delete all local chat history on this device.", color = TextSecondary) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.wipeEverything()
+                    showEraseConfirmDialog = false
+                    onBack()
+                }) {
+                    Text("Erase", color = DestructiveRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEraseConfirmDialog = false }) {
+                    Text("Cancel", color = TextSecondary)
+                }
+            },
+            containerColor = CardSurface,
+        )
     }
 }
 
+/** Grouped Section Card Helper */
 @Composable
-private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
-    val colors = LocalMinoColors.current
-    Column(modifier = Modifier.fillMaxWidth().padding(top = 18.dp)) {
+private fun SettingsGroup(
+    title: String,
+    content: @Composable () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = title.uppercase(),
-            color = colors.textLow,
+            text = title,
+            color = TextSecondary,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
-            letterSpacing = 1.3.sp,
-            modifier = Modifier.padding(bottom = 8.dp),
+            letterSpacing = 1.2.sp,
+            modifier = Modifier.padding(start = 8.dp, bottom = 6.dp),
         )
-        content()
-    }
-}
-
-@Composable
-private fun SettingButton(label: String, onClick: () -> Unit) {
-    val colors = LocalMinoColors.current
-    Text(
-        text = label,
-        color = colors.textHi,
-        fontSize = 12.sp,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(colors.bgElevated)
-            .clickable { onClick() }
-            .padding(horizontal = 14.dp, vertical = 9.dp),
-    )
-}
-
-@Composable
-private fun EraseButton(onErase: () -> Unit) {
-    val colors = LocalMinoColors.current
-    var armed by remember { mutableStateOf(false) }
-    LaunchedEffect(armed) {
-        if (armed) {
-            kotlinx.coroutines.delay(4000)
-            armed = false
-        }
-    }
-    Text(
-        text = if (armed) "Confirm erase?" else "Erase everything",
-        color = colors.danger,
-        fontSize = 12.sp,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(colors.dangerSoft)
-            .clickable {
-                if (armed) {
-                    onErase()
-                    armed = false
-                } else {
-                    armed = true
-                }
-            }
-            .padding(horizontal = 14.dp, vertical = 9.dp),
-    )
-}
-
-@Composable
-private fun MemoryRow(memory: Memory, viewModel: ChatViewModel) {
-    val colors = LocalMinoColors.current
-    var editing by remember { mutableStateOf(false) }
-    var text by remember { mutableStateOf(memory.text) }
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (editing) {
-            BasicTextField(
-                value = text,
-                onValueChange = { if (it.length <= Refusals.MEMORY_TEXT_LIMIT) text = it },
-                singleLine = true,
-                textStyle = TextStyle(color = colors.textHi, fontSize = 12.sp),
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(colors.bgElevated)
-                    .padding(horizontal = 10.dp, vertical = 7.dp),
-            )
-            Text(
-                "Save",
-                color = colors.accent,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(start = 8.dp).clip(CircleShapeShape()).clickable {
-                    viewModel.remember(text)
-                    editing = false
-                }.padding(6.dp),
-            )
-        } else {
-            Text(
-                text = memory.text,
-                color = colors.text,
-                fontSize = 12.sp,
-                lineHeight = 16.sp,
-                modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).clickable { editing = true }.padding(vertical = 4.dp),
-            )
-            Icon(
-                Icons.Filled.Delete,
-                contentDescription = "Forget",
-                tint = colors.textLow,
-                modifier = Modifier.padding(start = 8.dp).size(14.dp).clip(RoundedCornerShape(6.dp)).clickable {
-                    viewModel.forgetMemory(memory.id)
-                }.padding(2.dp),
-            )
-        }
-    }
-}
-
-private fun CircleShapeShape() = androidx.compose.foundation.shape.CircleShape
-
-@Composable
-private fun Segmented(
-    options: List<Pair<SearchMode, String>>,
-    selected: SearchMode,
-    onSelect: (SearchMode) -> Unit,
-) {
-    val colors = LocalMinoColors.current
-    Row(modifier = Modifier.fillMaxWidth()) {
-        options.forEach { (mode, label) ->
-            val active = mode == selected
-            Text(
-                text = label,
-                color = if (active) colors.accent else colors.textMid,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 6.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (active) colors.accentSoft else colors.bgElevated)
-                    .clickable { onSelect(mode) }
-                    .padding(vertical = 9.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            )
-        }
-    }
-}
-
-@Composable
-private fun RadioRow(title: String, subtitle: String, selected: Boolean, onClick: () -> Unit) {
-    val colors = LocalMinoColors.current
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 3.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) colors.bgHover else Color.Transparent)
-            .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, color = colors.textHi, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            Text(subtitle, color = colors.textLow, fontSize = 10.sp)
-        }
-        if (selected) {
-            Icon(Icons.Filled.Check, null, tint = colors.accent, modifier = Modifier.size(15.dp))
-        }
-    }
-}
-
-@Composable
-private fun EffortRow(title: String, subtitle: String, selected: Boolean, onClick: () -> Unit) {
-    RadioRow(title, subtitle, selected, onClick)
-}
-
-@Composable
-private fun ToggleRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    val colors = LocalMinoColors.current
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(colors.bgElevated)
-            .clickable { onChange(!checked) }
-            .padding(horizontal = 10.dp, vertical = 9.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, color = colors.text, fontSize = 12.sp, modifier = Modifier.weight(1f))
-        Box(
-            modifier = Modifier
-                .width(34.dp)
-                .height(20.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(if (checked) colors.accent else colors.bgHover),
-            contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = CardSurface,
         ) {
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 3.dp)
-                    .width(14.dp)
-                    .height(14.dp)
-                    .clip(RoundedCornerShape(7.dp))
-                    .background(if (checked) colors.onAccent else colors.textLow),
-            )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                content()
+            }
         }
     }
 }
 
+/** Switch Row Helper Component */
 @Composable
-private fun AppearanceCard(
+private fun SettingsSwitchRow(
+    icon: ImageVector,
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp))
+        Text(
+            text = title,
+            color = TextPrimary,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(start = 14.dp).weight(1f),
+        )
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = TextSecondary,
+                uncheckedThumbColor = TextSecondary,
+                uncheckedTrackColor = DarkBg,
+            ),
+        )
+    }
+}
+
+/** Selected Value Row Helper Component */
+@Composable
+private fun SettingsValueRow(
+    icon: ImageVector,
+    title: String,
     value: String,
-    label: String,
-    selected: Boolean,
-    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    val colors = LocalMinoColors.current
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(if (selected) colors.accentSoft else colors.bgElevated)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
             .clickable { onClick() }
-            .padding(14.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .width(44.dp)
-                .height(28.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(if (value == "dark") Color(0xFF0B1310) else Color(0xFFFBF9F2)),
+        Icon(icon, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp))
+        Text(
+            text = title,
+            color = TextPrimary,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(start = 14.dp).weight(1f),
         )
         Text(
-            text = label,
-            color = if (selected) colors.accent else colors.textMid,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(top = 8.dp),
+            text = value,
+            color = TextSecondary,
+            fontSize = 13.sp,
+            modifier = Modifier.padding(end = 4.dp),
+        )
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = TextSecondary,
+            modifier = Modifier.size(18.dp),
         )
     }
+}
+
+/** Action Row Helper Component */
+@Composable
+private fun SettingsActionRow(
+    icon: ImageVector,
+    title: String,
+    tint: Color = TextPrimary,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = if (tint == DestructiveRed) DestructiveRed else TextSecondary, modifier = Modifier.size(20.dp))
+        Text(
+            text = title,
+            color = tint,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(start = 14.dp).weight(1f),
+        )
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = TextSecondary,
+            modifier = Modifier.size(18.dp),
+        )
+    }
+}
+
+/** Option Dialog Selection Helper */
+@Composable
+private fun <T> OptionSelectionDialog(
+    title: String,
+    options: List<Pair<T, String>>,
+    selected: T,
+    onSelect: (T) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title, color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold) },
+        text = {
+            Column {
+                options.forEach { (option, label) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(option) }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = (option == selected),
+                            onClick = { onSelect(option) },
+                            colors = RadioButtonDefaults.colors(selectedColor = TextPrimary, unselectedColor = TextSecondary),
+                        )
+                        Text(
+                            text = label,
+                            color = TextPrimary,
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = TextSecondary)
+            }
+        },
+        containerColor = CardSurface,
+    )
 }

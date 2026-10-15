@@ -11,8 +11,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -86,7 +88,7 @@ fun Thread(viewModel: ChatViewModel) {
     val listState = rememberLazyListState()
 
     if (messages.isEmpty()) {
-        EmptyState(headline = ui.headline)
+        EmptyState(displayName = ui.displayName)
         return
     }
 
@@ -97,29 +99,37 @@ fun Thread(viewModel: ChatViewModel) {
         }
     }
 
-    LazyColumn(
-        state = listState,
+    Box(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 12.dp),
+        contentAlignment = Alignment.TopCenter,
     ) {
-        item {
-            ShareRow(viewModel = viewModel, messages = messages)
-        }
-        items(messages, key = { it.id }) { message ->
-            if (message.role == Role.USER) {
-                UserBubble(viewModel = viewModel, message = message)
-            } else {
-                AssistantMessage(viewModel = viewModel, message = message)
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxHeight()
+                .fillMaxWidth()
+                .widthIn(max = 800.dp),
+            contentPadding = PaddingValues(vertical = 16.dp),
+        ) {
+            item {
+                ShareRow(viewModel = viewModel, messages = messages)
             }
-        }
-        if (ui.streaming) {
-            val last = messages.lastOrNull()
-            if (last == null || last.role == Role.ASSISTANT && last.displayedContent().isEmpty()) {
-                item { WaitingRow(hint = ui.streamHint ?: "") }
+            items(messages, key = { it.id }) { message ->
+                if (message.role == Role.USER) {
+                    UserBubble(viewModel = viewModel, message = message)
+                } else {
+                    AssistantMessage(viewModel = viewModel, message = message)
+                }
             }
-        }
-        item {
-            MemoryOffer(viewModel = viewModel)
+            if (ui.streaming) {
+                val last = messages.lastOrNull()
+                if (last == null || last.role == Role.ASSISTANT && last.displayedContent().isEmpty()) {
+                    item { WaitingRow(hint = ui.streamHint ?: "") }
+                }
+            }
+            item {
+                MemoryOffer(viewModel = viewModel)
+            }
         }
     }
 }
@@ -271,10 +281,10 @@ private fun UserBubble(viewModel: ChatViewModel, message: ChatMessage) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 5.dp),
+            .padding(horizontal = 20.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.End,
     ) {
-        Column(horizontalAlignment = Alignment.End, modifier = Modifier.widthIn(max = 320.dp)) {
+        Column(horizontalAlignment = Alignment.End, modifier = Modifier.widthIn(max = 360.dp)) {
             message.images.orEmpty().forEach { image ->
                 val bitmap = rememberBitmapFromDataUrl(image.url)
                 if (bitmap != null) {
@@ -345,19 +355,19 @@ private fun UserBubble(viewModel: ChatViewModel, message: ChatMessage) {
                 Text(
                     text = message.content,
                     color = colors.textHi,
-                    fontSize = 15.sp,
-                    lineHeight = 22.sp,
+                    fontSize = 16.sp,
+                    lineHeight = 24.sp,
                     modifier = Modifier
                         .clip(
                             RoundedCornerShape(
                                 topStart = 22.dp,
                                 topEnd = 22.dp,
                                 bottomStart = 22.dp,
-                                bottomEnd = 6.dp,
+                                bottomEnd = 12.dp,
                             ),
                         )
                         .background(colors.userBubble)
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
                 )
                 Text(
                     text = "Edit",
@@ -404,17 +414,27 @@ private fun AssistantMessage(viewModel: ChatViewModel, message: ChatMessage) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 5.dp),
+            .padding(horizontal = 20.dp, vertical = 10.dp),
     ) {
-        // Header row: coloured dot + model badge + token count + variant stepper (spec §6.6)
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 4.dp)) {
+        // Header row: brand logo icon + model badge + token count + variant stepper
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 6.dp)) {
             Box(
-                modifier = Modifier.size(7.dp).clip(CircleShape).background(badgeColor),
-            )
+                modifier = Modifier
+                    .size(20.dp)
+                    .clip(CircleShape)
+                    .background(badgeColor.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.mino_logo),
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                )
+            }
             Text(
-                text = " ${Models.getModelDisplayName(message.model)}",
+                text = "  ${Models.getModelDisplayName(message.model)}",
                 color = badgeColor,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
             )
             message.usage?.let { usage ->
@@ -435,19 +455,27 @@ private fun AssistantMessage(viewModel: ChatViewModel, message: ChatMessage) {
             }
         }
 
-        if (message.generatedImages.isNullOrEmpty()) {
-            if (shown.isNotBlank()) {
-                MarkdownText(
-                    markdown = shown + if (streamingThis) "▍" else "",
-                    baseColor = colors.text,
-                    linkColor = colors.accent,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(colors.bgRaised)
+                .padding(14.dp),
+        ) {
+            if (message.generatedImages.isNullOrEmpty()) {
+                if (shown.isNotBlank()) {
+                    MarkdownText(
+                        markdown = shown + if (streamingThis) "▍" else "",
+                        baseColor = colors.textHi,
+                        linkColor = colors.accent,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
-        }
 
-        message.generatedImages.orEmpty().forEach { generated ->
-            GeneratedImageCard(generated = generated)
+            message.generatedImages.orEmpty().forEach { generated ->
+                GeneratedImageCard(generated = generated)
+            }
         }
 
         // Truncation notice (exact sentence, spec §6.6/#8)
@@ -700,28 +728,23 @@ private fun MemoryOffer(viewModel: ChatViewModel) {
     }
 }
 
-/** Spec §6.6 — empty state: glow + logo + rotating headline (persisted cursor). */
+/** Hero Welcome View (Claude style): brand logo + personalized greeting "Back at it, [Name]". */
 @Composable
-private fun EmptyState(headline: String) {
-    val colors = LocalMinoColors.current
+private fun EmptyState(displayName: String?) {
+    val name = displayName?.takeIf { it.isNotBlank() } ?: "Friend"
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(
-                modifier = Modifier.size(96.dp).clip(CircleShape).background(colors.accentSoft),
-                contentAlignment = Alignment.Center,
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.mino_logo),
-                    contentDescription = null,
-                    modifier = Modifier.size(56.dp),
-                )
-            }
+            Image(
+                painter = painterResource(R.drawable.mino_logo),
+                contentDescription = "Mino",
+                modifier = Modifier.size(64.dp),
+            )
             Text(
-                text = headline,
-                color = colors.textHi,
+                text = "Back at it, $name",
+                color = Color(0xFFF4F4F5),
                 fontSize = 26.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = (-0.8).sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.5).sp,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 modifier = Modifier.padding(top = 20.dp, start = 24.dp, end = 24.dp),
             )
