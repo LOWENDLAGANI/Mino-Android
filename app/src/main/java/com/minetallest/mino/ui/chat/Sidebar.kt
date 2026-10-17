@@ -142,7 +142,7 @@ fun Sidebar(viewModel: ChatViewModel, onNavigate: (String) -> Unit) {
                 tint = colors.text,
                 modifier = Modifier
                     .size(20.dp)
-                    .clickable { onNavigate("back") },
+                    .clickable { viewModel.setDrawer(false) },
             )
         }
 
