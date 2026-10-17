@@ -5,6 +5,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,7 +32,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
@@ -39,6 +43,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
@@ -60,6 +65,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -67,6 +74,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.minetallest.mino.R
 import com.minetallest.mino.domain.Chat
 import com.minetallest.mino.domain.ChatFolder
 import com.minetallest.mino.domain.Rules
@@ -78,7 +86,7 @@ import com.minetallest.mino.ui.theme.IosSectionHeader
 import com.minetallest.mino.ui.theme.LocalMinoColors
 import com.minetallest.mino.ui.theme.MinoColors
 
-/** iOS-style sidebar: search, destinations, folders and the recent chat list. */
+/** iOS-style sidebar: logo + title header, new chat button, destinations, folders and the recent chat list. */
 @Composable
 fun Sidebar(viewModel: ChatViewModel, onNavigate: (String) -> Unit) {
     val colors = LocalMinoColors.current
@@ -95,60 +103,80 @@ fun Sidebar(viewModel: ChatViewModel, onNavigate: (String) -> Unit) {
             .background(colors.sidebarBackground)
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = 16.dp),
     ) {
+        // ---- Header: logo + title + search icon + close icon ----
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp, bottom = 8.dp),
+                .padding(top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = "Chats",
-                color = colors.textHi,
-                fontSize = 34.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.4).sp,
-                modifier = Modifier.weight(1f).padding(start = 4.dp),
+            Image(
+                painter = painterResource(R.drawable.mino_logo),
+                contentDescription = "Mino",
+                modifier = Modifier.size(34.dp),
+                contentScale = ContentScale.Fit,
             )
-            Box(
+            Text(
+                text = "Mino",
+                color = colors.textHi,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.3).sp,
                 modifier = Modifier
-                    .size(38.dp)
-                    .clip(CircleShape)
-                    .clickable { viewModel.startNewChat() },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.Filled.Edit, contentDescription = "New chat", tint = colors.accent, modifier = Modifier.size(22.dp))
-            }
+                    .weight(1f)
+                    .padding(start = 10.dp),
+            )
+            Icon(
+                Icons.Filled.Search,
+                contentDescription = "Search chats",
+                tint = colors.text,
+                modifier = Modifier
+                    .size(20.dp)
+                    .clickable { viewModel.setSearchOpen(true) },
+            )
+            Icon(
+                Icons.Filled.Close,
+                contentDescription = "Close sidebar",
+                tint = colors.text,
+                modifier = Modifier
+                    .size(20.dp)
+                    .clickable { onNavigate("back") },
+            )
         }
 
-        Row(
+        // ---- New chat button ----
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(10.dp))
-                .background(colors.fill)
-                .clickable { viewModel.setSearchOpen(true) }
-                .padding(horizontal = 9.dp, vertical = 9.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .background(colors.accent)
+                .clickable { viewModel.startNewChat() }
+                .padding(14.dp),
         ) {
-            Icon(Icons.Filled.Search, contentDescription = null, tint = colors.textMid, modifier = Modifier.size(18.dp))
-            Text(
-                text = "Search",
-                color = colors.textMid,
-                fontSize = 17.sp,
-                modifier = Modifier.padding(start = 6.dp),
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Filled.Add,
+                    contentDescription = null,
+                    tint = colors.onAccent,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = "New chat",
+                    color = colors.onAccent,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(start = 10.dp),
+                )
+            }
         }
-        Spacer(Modifier.height(12.dp))
+
+        Spacer(Modifier.height(14.dp))
 
         IosGroup {
-            SidebarDest(
-                title = "New Chat",
-                icon = Icons.Filled.Add,
-                tint = colors.accent,
-                onClick = { viewModel.startNewChat() },
-            )
-            IosDivider(startIndent = 48.dp)
             SidebarDest(
                 title = "Gallery",
                 icon = Icons.Filled.Image,
@@ -334,19 +362,17 @@ private fun ChatRow(
                 .fillMaxWidth()
                 .padding(vertical = 1.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(if (selected) colors.bgRaised else androidx.compose.ui.graphics.Color.Transparent)
+                .background(if (selected) colors.bgRaised else Color.Transparent)
                 .combinedClickable(onClick = onSelect, onLongClick = onMenuOpen)
                 .padding(horizontal = 10.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (chat.pinned) {
-                Icon(
-                    Icons.Filled.PushPin,
-                    contentDescription = null,
-                    tint = colors.textMid,
-                    modifier = Modifier.size(13.dp).padding(end = 5.dp),
-                )
-            }
+            Icon(
+                Icons.AutoMirrored.Outlined.Chat,
+                contentDescription = null,
+                tint = if (selected) colors.accent else colors.textMid,
+                modifier = Modifier.size(18.dp).padding(end = 5.dp),
+            )
             Text(
                 text = chat.title,
                 color = if (selected) colors.textHi else colors.text,
