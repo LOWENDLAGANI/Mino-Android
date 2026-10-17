@@ -1,5 +1,10 @@
 package com.minetallest.mino.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -18,6 +23,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,11 +32,13 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.minetallest.mino.R
@@ -41,12 +49,41 @@ import kotlinx.coroutines.delay
 
 /**
  * Startup: prefs → maintenance → name gate → chat, with a one-shot splash on top.
+ * [deepLinkChatId] comes from a reply notification tap.
  */
 @Composable
-fun MinoRoot(viewModel: ChatViewModel) {
+fun MinoRoot(
+    viewModel: ChatViewModel,
+    deepLinkChatId: String? = null,
+    onDeepLinkConsumed: () -> Unit = {},
+) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val colors = LocalMinoColors.current
     val view = LocalView.current
+    val context = LocalContext.current
+
+    val notificationPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) {}
+    var askedForNotifications by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(deepLinkChatId) {
+        val chatId = deepLinkChatId ?: return@LaunchedEffect
+        viewModel.selectChat(chatId)
+        onDeepLinkConsumed()
+    }
+
+    // Ask once, after onboarding, so background replies can reach the user.
+    LaunchedEffect(ui.splashDone, ui.displayName) {
+        if (askedForNotifications || !ui.splashDone || ui.displayName == null) return@LaunchedEffect
+        askedForNotifications = true
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     SideEffect {
         val window = (view.context as? android.app.Activity)?.window ?: return@SideEffect

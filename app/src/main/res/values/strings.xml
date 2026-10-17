@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Mino</string>
+    <string name="notification_channel_replies">Reply alerts</string>
+    <string name="notification_channel_replies_description">Shown when a reply finishes while Mino is in the background.</string>
+    <string name="notification_ready_title">Mino is ready</string>
+    <string name="notification_ready_text">Your reply in “%1$s” is ready</string>
+    <string name="notification_ready_fallback">your chat</string>
+    <string name="notification_ready_open">Open</string>
 </resources>

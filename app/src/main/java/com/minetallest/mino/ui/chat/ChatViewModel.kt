@@ -32,6 +32,7 @@ import com.minetallest.mino.net.AppConfig
 import com.minetallest.mino.net.MinoApi
 import com.minetallest.mino.net.SseChatClient
 import com.minetallest.mino.util.Images
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -41,6 +42,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.TimeZone
 
 class ChatViewModel(private val container: AppContainer) : ViewModel() {
@@ -418,6 +420,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
                     )
                     putAssistant(message)
                     if (_ui.value.activeChatId != null) repo.touch(chatId, now)
+                    notifyReplyReady(chatId)
                 }
                 is MinoApi.ImageResult.Error -> notice(result.message, Notice.Tone.RED)
                 MinoApi.ImageResult.NotConfigured ->
@@ -557,6 +560,8 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         putAssistant(finished)
         if (chatId != null) repo.touch(chatId, System.currentTimeMillis())
 
+        if (!canceled && finalError == null && finalText.isNotBlank()) notifyReplyReady(chatId)
+
         Refusals.parseWaitSeconds(finalError)?.let { seconds ->
             _composer.update { it.copy(rateLimitUntil = System.currentTimeMillis() + seconds * 1000L) }
         }
@@ -569,6 +574,15 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
             if (run == memoryRun && suggestions.isNotEmpty()) {
                 _ui.update { it.copy(memorySuggestion = suggestions.take(3)) }
             }
+        }
+    }
+
+    /** Only fires when the reply lands while Mino is not visible. */
+    private suspend fun notifyReplyReady(chatId: String?) {
+        if (chatId == null || chatId == "temporary" || container.isForeground) return
+        val title = repo.chat(chatId)?.title.orEmpty()
+        withContext(Dispatchers.IO) {
+            if (!container.isForeground) container.replyNotifier.postReady(chatId, title)
         }
     }
 
