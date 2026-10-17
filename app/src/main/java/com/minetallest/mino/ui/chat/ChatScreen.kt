@@ -2,9 +2,14 @@ package com.minetallest.mino.ui.chat
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
@@ -14,7 +19,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
@@ -28,17 +32,12 @@ import com.minetallest.mino.ui.overlays.GalleryOverlay
 import com.minetallest.mino.ui.overlays.NotesPrompt
 import com.minetallest.mino.ui.overlays.RememberDialog
 import com.minetallest.mino.ui.overlays.SearchOverlay
+import com.minetallest.mino.ui.overlays.SettingsScreen
 import com.minetallest.mino.ui.overlays.TrashOverlay
 import com.minetallest.mino.ui.plus.PlusScreen
 import com.minetallest.mino.ui.theme.LocalMinoColors
 
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.width
-
-/** Main shell: sidebar drawer · header · banners · thread · composer · overlays (spec §6). */
+/** Main shell: sidebar drawer · header · banners · thread · composer · overlays. */
 @Composable
 fun ChatScreen(viewModel: ChatViewModel) {
     val colors = LocalMinoColors.current
@@ -48,17 +47,18 @@ fun ChatScreen(viewModel: ChatViewModel) {
     NavHost(navController = nav, startDestination = "chat") {
         composable("chat") {
             BoxWithConstraints(Modifier.fillMaxSize()) {
-                val isWideScreen = maxWidth >= 600.dp
+                val isWideScreen = maxWidth >= 700.dp
                 if (isWideScreen) {
                     Row(Modifier.fillMaxSize()) {
                         Box(
                             modifier = Modifier
-                                .width(300.dp)
+                                .width(320.dp)
                                 .fillMaxHeight()
                                 .background(colors.sidebarBackground),
                         ) {
                             Sidebar(viewModel = viewModel, onNavigate = { route -> nav.navigate(route) })
                         }
+                        Box(Modifier.width(0.5.dp).fillMaxHeight().background(colors.line))
                         Box(Modifier.weight(1f).fillMaxHeight()) {
                             ChatPage(viewModel = viewModel, showMenuButton = false)
                         }
@@ -78,6 +78,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
                             ModalDrawerSheet(
                                 drawerContainerColor = colors.sidebarBackground,
                                 drawerContentColor = colors.text,
+                                windowInsets = WindowInsets(0, 0, 0, 0),
                             ) {
                                 Sidebar(viewModel = viewModel, onNavigate = { route -> nav.navigate(route) })
                             }
@@ -117,13 +118,12 @@ fun ChatScreen(viewModel: ChatViewModel) {
             }
         }
         composable("settings") {
-            Box(Modifier.fillMaxSize().background(Color(0xFF121212))) {
-                com.minetallest.mino.ui.overlays.SettingsScreen(viewModel = viewModel, onBack = { nav.popBackStack() })
+            Box(Modifier.fillMaxSize().background(colors.background)) {
+                SettingsScreen(viewModel = viewModel, onBack = { nav.popBackStack() })
             }
         }
     }
 
-    // Overlays that live above everything (spec §6 stack).
     if (ui.searchOpen) SearchOverlay(viewModel = viewModel)
     if (ui.trashOpen) TrashOverlay(viewModel = viewModel)
     if (ui.galleryOpen) GalleryOverlay(viewModel = viewModel)
@@ -133,7 +133,6 @@ fun ChatScreen(viewModel: ChatViewModel) {
     }
 }
 
-/** Spec §6.6 — banners, notices and the scrolling thread over the composer. */
 @Composable
 private fun ChatPage(viewModel: ChatViewModel, showMenuButton: Boolean = true) {
     val colors = LocalMinoColors.current
@@ -148,6 +147,7 @@ private fun ChatPage(viewModel: ChatViewModel, showMenuButton: Boolean = true) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(colors.pageBackground)
                 .padding(padding),
         ) {
             val announcement = ui.config.announcement

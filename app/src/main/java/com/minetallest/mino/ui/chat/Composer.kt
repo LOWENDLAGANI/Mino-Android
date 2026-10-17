@@ -7,23 +7,22 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,9 +31,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
@@ -42,16 +40,13 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.Square
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -59,15 +54,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -75,22 +79,16 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.minetallest.mino.domain.Refusals
+import com.minetallest.mino.ui.theme.IosDivider
+import com.minetallest.mino.ui.theme.IosIconBadge
 import com.minetallest.mino.ui.theme.LocalMinoColors
+import com.minetallest.mino.ui.theme.MinoColors
 import com.minetallest.mino.util.VoiceInput
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.isShiftPressed
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.type
 
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
-
-/** Spec §6.7 — composer: `[+ tools] [textarea] [clock] [send/stop]` in one rounded shell. */
+/** Message bar: attachments · text · mode · voice · send. */
 @Composable
 fun Composer(viewModel: ChatViewModel, onNavigate: ((String) -> Unit)? = null) {
     val colors = LocalMinoColors.current
@@ -124,56 +122,53 @@ fun Composer(viewModel: ChatViewModel, onNavigate: ((String) -> Unit)? = null) {
         }
     }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(colors.pageBackground)
             .navigationBarsPadding()
-            .imePadding(),
-        contentAlignment = Alignment.Center,
+            .imePadding()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .widthIn(max = 800.dp)
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-        ) {
-            // Rate-limit banner (spec §6.7)
-            composer.rateLimitUntil?.let { until ->
-                RateLimitBanner(
-                    until = until,
-                    onQueue = { viewModel.queueUntilRateLimitLifts() },
-                    onDismiss = { viewModel.clearRateLimit() },
-                )
-            }
+        composer.rateLimitUntil?.let { until ->
+            RateLimitBanner(
+                until = until,
+                onQueue = { viewModel.queueUntilRateLimitLifts() },
+                onDismiss = { viewModel.clearRateLimit() },
+            )
+        }
 
-        // Image-mode strip (spec §6.7)
         if (composer.imageMode) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 4.dp)
+                    .padding(bottom = 6.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(colors.codeSoft)
                     .padding(horizontal = 10.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Filled.Image, null, tint = colors.code, modifier = Modifier.size(13.dp))
-                Text("  Image", color = colors.code, fontSize = 12.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                Icon(Icons.Filled.Image, null, tint = colors.code, modifier = Modifier.size(14.dp))
+                Text(
+                    "Image",
+                    color = colors.code,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(start = 6.dp),
+                )
                 Spacer(Modifier.weight(1f))
                 Icon(
                     Icons.Filled.Close,
                     contentDescription = "Exit image mode",
                     tint = colors.code,
-                    modifier = Modifier.size(13.dp).clip(CircleShape).clickable { viewModel.toggleImageMode(false) },
+                    modifier = Modifier.size(14.dp).clip(CircleShape).clickable { viewModel.toggleImageMode(false) },
                 )
             }
         }
 
-        // Attachment previews
         if (composer.images.isNotEmpty() || composer.documents.isNotEmpty()) {
             Row(
-                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = 4.dp),
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = 6.dp),
                 verticalAlignment = Alignment.Bottom,
             ) {
                 composer.images.forEach { image ->
@@ -183,8 +178,8 @@ fun Composer(viewModel: ChatViewModel, onNavigate: ((String) -> Unit)? = null) {
                             Image(
                                 bitmap = bitmap.asImageBitmap(),
                                 contentDescription = image.name,
-                                modifier = Modifier.size(72.dp).clip(RoundedCornerShape(12.dp)),
-                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                modifier = Modifier.size(64.dp).clip(RoundedCornerShape(12.dp)),
+                                contentScale = ContentScale.Crop,
                             )
                         }
                         Icon(
@@ -193,9 +188,11 @@ fun Composer(viewModel: ChatViewModel, onNavigate: ((String) -> Unit)? = null) {
                             tint = Color.White,
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
-                                .size(16.dp)
+                                .padding(3.dp)
+                                .size(18.dp)
                                 .clip(CircleShape)
                                 .background(Color.Black.copy(alpha = 0.55f))
+                                .padding(3.dp)
                                 .clickable { viewModel.removeImage(image.url) },
                         )
                     }
@@ -205,17 +202,22 @@ fun Composer(viewModel: ChatViewModel, onNavigate: ((String) -> Unit)? = null) {
                         modifier = Modifier
                             .padding(end = 6.dp)
                             .clip(CircleShape)
-                            .background(colors.bgElevated)
+                            .background(colors.fill)
                             .padding(start = 10.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(Icons.Filled.Description, null, tint = colors.textMid, modifier = Modifier.size(12.dp))
-                        Text(" ${doc.name}", color = colors.text, fontSize = 11.sp)
+                        Icon(Icons.Filled.Description, null, tint = colors.textMid, modifier = Modifier.size(13.dp))
+                        Text(
+                            " ${doc.name}",
+                            color = colors.text,
+                            fontSize = 13.sp,
+                            modifier = Modifier.widthIn(max = 160.dp),
+                        )
                         Icon(
                             Icons.Filled.Close,
                             contentDescription = "Remove",
                             tint = colors.textMid,
-                            modifier = Modifier.padding(start = 4.dp).size(11.dp).clip(CircleShape).clickable {
+                            modifier = Modifier.padding(start = 4.dp).size(12.dp).clip(CircleShape).clickable {
                                 viewModel.removeDocument(doc.name)
                             },
                         )
@@ -228,50 +230,45 @@ fun Composer(viewModel: ChatViewModel, onNavigate: ((String) -> Unit)? = null) {
             Text(
                 text = error,
                 color = colors.danger,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 4.dp)
+                    .padding(bottom = 6.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(colors.dangerSoft)
                     .clickable { viewModel.setAttachmentError(null) }
-                    .padding(8.dp),
+                    .padding(10.dp),
             )
         }
 
-        // Input Card Container (Claude Style)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .background(Color(0xFF1E1E22))
-                .border(1.dp, Color(0xFF27272A), RoundedCornerShape(20.dp))
-                .padding(12.dp),
+                .clip(RoundedCornerShape(22.dp))
+                .background(colors.composerShell)
+                .border(0.5.dp, colors.line, RoundedCornerShape(22.dp))
+                .padding(horizontal = 14.dp, vertical = 12.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp),
-            ) {
+            Box(modifier = Modifier.fillMaxWidth()) {
                 if (composer.text.isEmpty()) {
                     Text(
                         text = when {
                             composer.compressing -> "Compressing…"
-                            composer.imageMode -> "Describe the image to create…"
-                            else -> "Ask Mino anything…"
+                            composer.imageMode -> "Describe an image"
+                            else -> "Message"
                         },
-                        color = Color(0xFFA1A1AA),
-                        fontSize = 15.sp,
-                        modifier = Modifier.padding(vertical = 4.dp),
+                        color = colors.textMid,
+                        fontSize = 17.sp,
+                        modifier = Modifier.padding(top = 2.dp),
                     )
                 }
                 BasicTextField(
                     value = composer.text,
                     onValueChange = { viewModel.setComposerText(it) },
-                    textStyle = TextStyle(color = Color(0xFFF4F4F5), fontSize = 15.sp, lineHeight = 22.sp),
+                    textStyle = TextStyle(color = colors.textHi, fontSize = 17.sp, lineHeight = 23.sp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 36.dp, max = 180.dp)
+                        .heightIn(min = 26.dp, max = 180.dp)
                         .onKeyEvent { event ->
                             val isEnter = event.key == Key.Enter || event.key == Key.NumPadEnter
                             if (event.type == KeyEventType.KeyDown && isEnter && !event.isShiftPressed) {
@@ -292,78 +289,25 @@ fun Composer(viewModel: ChatViewModel, onNavigate: ((String) -> Unit)? = null) {
 
             Spacer(Modifier.height(10.dp))
 
-            // Bottom Docked Controls inside Input Card
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box {
-                    Icon(
-                        Icons.Filled.Add,
-                        contentDescription = "Tools",
-                        tint = Color(0xFFA1A1AA),
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF27272A))
-                            .clickable { toolsOpen = true }
-                            .padding(7.dp),
-                    )
-                    ToolsMenu(
-                        expanded = toolsOpen,
-                        imageUnavailable = ui.availability?.imageAvailable == false,
-                        onDismiss = { toolsOpen = false },
-                        onCamera = {
-                            toolsOpen = false
-                            val uri = newCameraUri(context)
-                            pendingCameraUri = uri
-                            if (uri != null) cameraLauncher.launch(uri)
-                        },
-                        onGallery = {
-                            toolsOpen = false
-                            galleryLauncher.launch("image/*")
-                        },
-                        onFiles = {
-                            toolsOpen = false
-                            filesLauncher.launch(arrayOf("text/plain", "text/markdown", "text/csv", "application/json", "text/*", "*/*"))
-                        },
-                        onDonate = {
-                            toolsOpen = false
-                            onNavigate?.invoke("donate")
-                        },
-                        onVoice = {
-                            toolsOpen = false
-                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                                startVoice(voice, viewModel)
-                            } else {
-                                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                            }
-                        },
-                        onRemember = {
-                            toolsOpen = false
-                            viewModel.setRememberDialog(true)
-                        },
-                        onImageMode = {
-                            toolsOpen = false
-                            viewModel.toggleImageMode(true)
-                        },
-                    )
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(colors.fill)
+                        .clickable { toolsOpen = true },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "Tools", tint = colors.text, modifier = Modifier.size(19.dp))
                 }
 
                 Spacer(Modifier.width(8.dp))
-
-                // Docked Model Selector Pill
                 ModeSelector(viewModel = viewModel)
-
                 Spacer(Modifier.weight(1f))
 
-                Icon(
-                    Icons.Filled.Mic,
-                    contentDescription = "Voice Input",
-                    tint = Color(0xFFA1A1AA),
+                Box(
                     modifier = Modifier
-                        .padding(end = 8.dp)
-                        .size(32.dp)
+                        .size(30.dp)
                         .clip(CircleShape)
                         .clickable {
                             if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
@@ -371,20 +315,24 @@ fun Composer(viewModel: ChatViewModel, onNavigate: ((String) -> Unit)? = null) {
                             } else {
                                 permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                             }
-                        }
-                        .padding(7.dp),
-                )
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Filled.Mic, contentDescription = "Voice", tint = colors.textMid, modifier = Modifier.size(19.dp))
+                }
+
+                Spacer(Modifier.width(6.dp))
 
                 val canSend = composer.text.isNotBlank() || composer.images.isNotEmpty()
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(30.dp)
                         .clip(CircleShape)
                         .background(
                             when {
-                                ui.streaming -> Color(0xFF27272A)
-                                canSend -> Color(0xFFF4F4F5)
-                                else -> Color(0xFF27272A)
+                                ui.streaming -> colors.dangerSoft
+                                canSend -> colors.accent
+                                else -> colors.fill
                             },
                         )
                         .clickable(enabled = ui.streaming || canSend) {
@@ -396,17 +344,55 @@ fun Composer(viewModel: ChatViewModel, onNavigate: ((String) -> Unit)? = null) {
                         if (ui.streaming) Icons.Filled.Stop else Icons.Filled.ArrowUpward,
                         contentDescription = if (ui.streaming) "Stop" else "Send",
                         tint = when {
-                            ui.streaming -> Color(0xFFEF5350)
-                            canSend -> Color(0xFF121212)
-                            else -> Color(0xFFA1A1AA)
+                            ui.streaming -> colors.danger
+                            canSend -> colors.onAccent
+                            else -> colors.textMid
                         },
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(18.dp),
                     )
                 }
             }
         }
+
+        ToolsMenu(
+            expanded = toolsOpen,
+            onDismiss = { toolsOpen = false },
+            onCamera = {
+                toolsOpen = false
+                val uri = newCameraUri(context)
+                pendingCameraUri = uri
+                if (uri != null) cameraLauncher.launch(uri)
+            },
+            onGallery = {
+                toolsOpen = false
+                galleryLauncher.launch("image/*")
+            },
+            onFiles = {
+                toolsOpen = false
+                filesLauncher.launch(arrayOf("text/plain", "text/markdown", "text/csv", "application/json", "text/*", "*/*"))
+            },
+            onDonate = {
+                toolsOpen = false
+                onNavigate?.invoke("donate")
+            },
+            onVoice = {
+                toolsOpen = false
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                    startVoice(voice, viewModel)
+                } else {
+                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                }
+            },
+            onRemember = {
+                toolsOpen = false
+                viewModel.setRememberDialog(true)
+            },
+            onImageMode = {
+                toolsOpen = false
+                viewModel.toggleImageMode(true)
+            },
+        )
     }
-}
 }
 
 private var pendingCameraUri: Uri? = null
@@ -435,13 +421,10 @@ private fun startVoice(voice: VoiceInput, viewModel: ChatViewModel) {
     )
 }
 
-
-/** Attachment / Action Menu Bottom Sheet (Claude / ChatGPT style). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ToolsMenu(
     expanded: Boolean,
-    imageUnavailable: Boolean,
     onDismiss: () -> Unit,
     onCamera: () -> Unit,
     onGallery: () -> Unit,
@@ -452,97 +435,62 @@ private fun ToolsMenu(
     onImageMode: () -> Unit,
 ) {
     if (!expanded) return
-
+    val colors = LocalMinoColors.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = Color(0xFF1E1E22),
-        scrimColor = Color.Black.copy(alpha = 0.6f),
-        dragHandle = {
-            BottomSheetDefaults.DragHandle(color = Color(0xFFA1A1AA))
-        },
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        containerColor = colors.menuBackground,
+        scrimColor = Color.Black.copy(alpha = 0.35f),
+        dragHandle = { BottomSheetDefaults.DragHandle(color = colors.lineStrong) },
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 16.dp),
         ) {
-            ToolsRow(
-                icon = Icons.Filled.CameraAlt,
-                title = "Camera",
-                onClick = onCamera,
-            )
-            ToolsRow(
-                icon = Icons.Filled.Image,
-                title = "Gallery",
-                onClick = onGallery,
-            )
-            ToolsRow(
-                icon = Icons.Filled.Description,
-                title = "Files",
-                onClick = onFiles,
-            )
-            ToolsRow(
-                icon = Icons.Filled.Mic,
-                title = "Voice Input",
-                onClick = onVoice,
-            )
-            ToolsRow(
-                icon = Icons.Filled.Psychology,
-                title = "Remember This",
-                onClick = onRemember,
-            )
-            ToolsRow(
-                icon = Icons.Filled.AutoAwesome,
-                title = "Create Image",
-                onClick = onImageMode,
-            )
-            ToolsRow(
-                icon = Icons.Filled.Favorite,
-                title = "Support Mino",
-                onClick = onDonate,
-            )
-            Spacer(Modifier.height(16.dp))
+            ToolsRow(Icons.Filled.CameraAlt, "Camera", colors.accent, onCamera)
+            IosDivider(startIndent = 52.dp)
+            ToolsRow(Icons.Filled.Image, "Gallery", MinoColors.SystemPurple, onGallery)
+            IosDivider(startIndent = 52.dp)
+            ToolsRow(Icons.Filled.Description, "Files", colors.amber, onFiles)
+            IosDivider(startIndent = 52.dp)
+            ToolsRow(Icons.Filled.Mic, "Voice", colors.mint, onVoice)
+            IosDivider(startIndent = 52.dp)
+            ToolsRow(Icons.Filled.Psychology, "Remember", Color(0xFF5856D6), onRemember)
+            IosDivider(startIndent = 52.dp)
+            ToolsRow(Icons.Filled.Image, "Create Image", Color(0xFFFF2D55), onImageMode)
+            IosDivider(startIndent = 52.dp)
+            ToolsRow(Icons.Filled.Favorite, "Support Mino", Color(0xFFFF2D55), onDonate)
         }
     }
 }
 
 @Composable
-private fun ToolsRow(
-    icon: ImageVector,
-    title: String,
-    onClick: () -> Unit,
-) {
+private fun ToolsRow(icon: ImageVector, title: String, tint: Color, onClick: () -> Unit) {
+    val colors = LocalMinoColors.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 48.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(10.dp))
             .clickable { onClick() }
-            .padding(horizontal = 12.dp, vertical = 12.dp),
+            .padding(horizontal = 8.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = Color(0xFFA1A1AA),
-            modifier = Modifier.size(20.dp),
-        )
+        IosIconBadge(icon = icon, tint = tint)
         Text(
             text = title,
-            color = Color(0xFFF4F4F5),
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(start = 16.dp).weight(1f),
+            color = colors.text,
+            fontSize = 17.sp,
+            modifier = Modifier.padding(start = 13.dp).weight(1f),
         )
     }
 }
 
-/** Spec §6.7 — amber rate-limit banner with live countdown + "Queue until then". */
 @Composable
 private fun RateLimitBanner(until: Long, onQueue: () -> Unit, onDismiss: () -> Unit) {
     val colors = LocalMinoColors.current
@@ -558,28 +506,28 @@ private fun RateLimitBanner(until: Long, onQueue: () -> Unit, onDismiss: () -> U
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 4.dp)
-            .clip(RoundedCornerShape(14.dp))
+            .padding(bottom = 6.dp)
+            .clip(RoundedCornerShape(12.dp))
             .background(colors.amberSoft)
-            .padding(horizontal = 10.dp, vertical = 7.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Filled.AccessTime, null, tint = colors.amber, modifier = Modifier.size(13.dp))
+        Icon(Icons.Filled.AccessTime, null, tint = colors.amber, modifier = Modifier.size(14.dp))
         Text(
-            text = "  Rate limited — you can send again in ${seconds}s.",
+            text = "  Try again in ${seconds}s",
             color = colors.amber,
-            fontSize = 11.sp,
+            fontSize = 13.sp,
             modifier = Modifier.weight(1f),
         )
         if (seconds > 0) {
             Text(
-                text = "Queue until then",
+                text = "Send later",
                 color = colors.amber,
-                fontSize = 11.sp,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
                     .clip(CircleShape)
-                    .background(Color(0x1AFBBF24))
+                    .background(colors.bgRaised)
                     .clickable { onQueue() }
                     .padding(horizontal = 8.dp, vertical = 4.dp),
             )
@@ -588,13 +536,12 @@ private fun RateLimitBanner(until: Long, onQueue: () -> Unit, onDismiss: () -> U
                 Icons.Filled.Close,
                 contentDescription = "Dismiss",
                 tint = colors.amber,
-                modifier = Modifier.size(13.dp).clip(CircleShape).clickable { onDismiss() },
+                modifier = Modifier.size(14.dp).clip(CircleShape).clickable { onDismiss() },
             )
         }
     }
 }
 
-/** Inline notices above the thread (spec §6.6 — notices expire in 3–4 s). */
 @Composable
 fun NoticeStrip(viewModel: ChatViewModel) {
     val colors = LocalMinoColors.current
@@ -604,9 +551,9 @@ fun NoticeStrip(viewModel: ChatViewModel) {
         ui.notices.forEach { notice ->
             Text(
                 text = notice.text,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 color = when (notice.tone) {
-                    ChatViewModel.Notice.Tone.SUCCESS -> colors.accent
+                    ChatViewModel.Notice.Tone.SUCCESS -> colors.mint
                     ChatViewModel.Notice.Tone.AMBER -> colors.amber
                     ChatViewModel.Notice.Tone.RED -> colors.danger
                     ChatViewModel.Notice.Tone.NEUTRAL -> colors.textMid
@@ -615,20 +562,19 @@ fun NoticeStrip(viewModel: ChatViewModel) {
                     .padding(bottom = 3.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(colors.bgRaised)
-                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
             )
         }
     }
 }
 
-/** Banners (announcement, model-change) — spec §6.3/§6.6. */
 @Composable
 fun Banner(text: String, background: Color, textColor: Color, onDismiss: (() -> Unit)?) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 10.dp, vertical = 3.dp)
-            .clip(RoundedCornerShape(14.dp))
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(12.dp))
             .background(background)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -636,8 +582,8 @@ fun Banner(text: String, background: Color, textColor: Color, onDismiss: (() -> 
         Text(
             text = text,
             color = textColor,
-            fontSize = 12.sp,
-            lineHeight = 16.sp,
+            fontSize = 13.sp,
+            lineHeight = 17.sp,
             modifier = Modifier.weight(1f),
         )
         if (onDismiss != null) {
@@ -645,7 +591,7 @@ fun Banner(text: String, background: Color, textColor: Color, onDismiss: (() -> 
                 Icons.Filled.Close,
                 contentDescription = "Dismiss",
                 tint = textColor,
-                modifier = Modifier.padding(start = 8.dp).size(13.dp).clip(CircleShape).clickable { onDismiss() },
+                modifier = Modifier.padding(start = 8.dp).size(14.dp).clip(CircleShape).clickable { onDismiss() },
             )
         }
     }

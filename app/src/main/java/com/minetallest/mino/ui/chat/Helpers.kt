@@ -72,16 +72,16 @@ fun renderConversation(context: Context, messages: List<ChatMessage>): Bitmap {
     val width = 900
     val padding = 36f
     val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.rgb(205, 223, 212)
+        color = android.graphics.Color.rgb(28, 28, 30)
         textSize = 28f
     }
     val speakerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.rgb(110, 194, 148)
+        color = android.graphics.Color.rgb(0, 122, 255)
         textSize = 26f
         isFakeBoldText = true
     }
     val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.rgb(238, 245, 240)
+        color = android.graphics.Color.rgb(0, 0, 0)
         textSize = 36f
         isFakeBoldText = true
     }
@@ -119,12 +119,12 @@ fun renderConversation(context: Context, messages: List<ChatMessage>): Bitmap {
 
     val bitmap = Bitmap.createBitmap(width, safeHeight, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
-    canvas.drawColor(android.graphics.Color.rgb(11, 19, 16))
+    canvas.drawColor(android.graphics.Color.WHITE)
     var y = padding + 44f
     canvas.drawText("Mino conversation", padding, y, titlePaint)
     y += 60f
     canvas.drawLine(padding, y, width - padding, y, Paint().apply {
-        color = android.graphics.Color.rgb(40, 58, 48)
+        color = android.graphics.Color.rgb(229, 229, 234)
         strokeWidth = 2f
     })
     y += 40f

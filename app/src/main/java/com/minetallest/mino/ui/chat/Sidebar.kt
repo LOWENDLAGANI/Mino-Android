@@ -1,12 +1,10 @@
 package com.minetallest.mino.ui.chat
 
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,31 +28,26 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Badge
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -66,7 +59,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -74,28 +66,21 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.minetallest.mino.R
 import com.minetallest.mino.domain.Chat
 import com.minetallest.mino.domain.ChatFolder
 import com.minetallest.mino.domain.Rules
+import com.minetallest.mino.ui.theme.IosDivider
+import com.minetallest.mino.ui.theme.IosGroup
+import com.minetallest.mino.ui.theme.IosIconBadge
+import com.minetallest.mino.ui.theme.IosRow
+import com.minetallest.mino.ui.theme.IosSectionHeader
+import com.minetallest.mino.ui.theme.LocalMinoColors
+import com.minetallest.mino.ui.theme.MinoColors
 
-// Strict Claude Style Ultra-Minimalist Palette Constants
-private val DarkDrawerBg = Color(0xFF121212)       // Deep charcoal background
-private val DarkCardSurface = Color(0xFF1E1E22)    // Surface container
-private val SelectedContainer = Color(0xFF27272A)  // Muted selection container
-private val DividerColor = Color(0xFF27272A)       // Faint border/divider stroke
-
-// Text & Icons
-private val TextPrimary = Color(0xFFF4F4F5)        // Crisp off-white primary text
-private val TextSecondary = Color(0xFFA1A1AA)      // Muted cool gray secondary text & icons
-private val DestructiveRed = Color(0xFFEF5350)     // Red for deletion actions
-
-/**
- * Ultra-minimalist Claude Style Sidebar / Drawer component.
- * Strict monochrome charcoal palette, zero emojis, clean list rows, and safe bottom navigation padding.
- */
+/** iOS-style sidebar: search, destinations, folders and the recent chat list. */
 @Composable
 fun Sidebar(viewModel: ChatViewModel, onNavigate: (String) -> Unit) {
+    val colors = LocalMinoColors.current
     val ui by viewModel.ui.collectAsStateWithLifecycle()
 
     var folderFilter by remember { mutableStateOf<String?>(null) }
@@ -106,19 +91,110 @@ fun Sidebar(viewModel: ChatViewModel, onNavigate: (String) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkDrawerBg)
+            .background(colors.sidebarBackground)
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp),
     ) {
-        DrawerHeader(viewModel = viewModel, ui = ui)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Chats",
+                color = colors.textHi,
+                fontSize = 34.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.4).sp,
+                modifier = Modifier.weight(1f).padding(start = 4.dp),
+            )
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .clickable { viewModel.startNewChat() },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Filled.Edit, contentDescription = "New chat", tint = colors.accent, modifier = Modifier.size(22.dp))
+            }
+        }
 
-        DrawerNavigationSection(viewModel = viewModel, ui = ui, onNavigate = onNavigate)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(colors.fill)
+                .clickable { viewModel.setSearchOpen(true) }
+                .padding(horizontal = 9.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Filled.Search, contentDescription = null, tint = colors.textMid, modifier = Modifier.size(18.dp))
+            Text(
+                text = "Search",
+                color = colors.textMid,
+                fontSize = 17.sp,
+                modifier = Modifier.padding(start = 6.dp),
+            )
+        }
+        Spacer(Modifier.height(12.dp))
 
-        HorizontalDivider(
-            modifier = Modifier.padding(vertical = 8.dp),
-            color = DividerColor,
-        )
+        IosGroup {
+            IosRow(
+                title = "New Chat",
+                icon = Icons.Filled.Add,
+                iconTint = colors.accent,
+                onClick = { viewModel.startNewChat() },
+            )
+            IosDivider(startIndent = 57.dp)
+            IosRow(
+                title = "Gallery",
+                icon = Icons.Filled.Image,
+                iconTint = MinoColors.SystemPurple,
+                onClick = { viewModel.setGalleryOpen(true) },
+            )
+            IosDivider(startIndent = 57.dp)
+            IosRow(
+                title = "Trash",
+                icon = Icons.Filled.Delete,
+                iconTint = colors.danger,
+                value = if (ui.trash.isNotEmpty()) ui.trash.size.toString() else null,
+                onClick = { viewModel.setTrashOpen(true) },
+            )
+            IosDivider(startIndent = 57.dp)
+            IosRow(
+                title = "Mino Plus",
+                icon = Icons.Filled.AccountBalanceWallet,
+                iconTint = colors.accent,
+                value = ui.dew?.balance?.let {
+                    "%.2f".format(it).trimEnd('0').trimEnd('.')
+                } ?: "Plus",
+                onClick = { onNavigate("plus") },
+            )
+            IosDivider(startIndent = 57.dp)
+            IosRow(
+                title = "Support",
+                icon = Icons.Filled.Favorite,
+                iconTint = Color(0xFFFF2D55),
+                onClick = { onNavigate("donate") },
+            )
+            IosDivider(startIndent = 57.dp)
+            IosRow(
+                title = "News",
+                icon = Icons.Filled.Campaign,
+                iconTint = colors.amber,
+                onClick = { onNavigate("notes") },
+            )
+            IosDivider(startIndent = 57.dp)
+            IosRow(
+                title = "About",
+                icon = Icons.Filled.Info,
+                iconTint = colors.textMid,
+                chevron = true,
+                onClick = { onNavigate("about") },
+            )
+        }
 
         FolderSection(
             folders = ui.folders,
@@ -130,175 +206,176 @@ fun Sidebar(viewModel: ChatViewModel, onNavigate: (String) -> Unit) {
         )
 
         val visibleChats = ui.chats.filter { chat -> folderFilter == null || chat.folder == folderFilter }
+        val pinned = visibleChats.filter { it.pinned }
+        val others = visibleChats.filterNot { it.pinned }
 
-        ChatHistoryList(
-            chats = visibleChats,
-            activeChatId = ui.activeChatId,
-            renamingChatId = renamingChatId,
-            renameText = renameText,
-            menuChatId = menuChatId,
-            folders = ui.folders,
-            onSelectChat = { viewModel.selectChat(it) },
-            onMenuOpen = { menuChatId = it },
-            onMenuClose = { menuChatId = null },
-            onRenameStart = { chat ->
-                renameText = chat.title
-                renamingChatId = chat.id
-                menuChatId = null
-            },
-            onRenameChange = { renameText = it },
-            onRenameDone = { chatId ->
-                viewModel.renameChat(chatId, renameText)
-                renamingChatId = null
-            },
-            onTogglePin = { chatId, pinned -> viewModel.togglePin(chatId, pinned) },
-            onMoveToFolder = { chatId, folderId -> viewModel.moveChatToFolder(chatId, folderId) },
-            onDeleteChat = { viewModel.deleteChat(it) },
-            modifier = Modifier.weight(1f),
-        )
+        LazyColumn(modifier = Modifier.weight(1f)) {
+            if (pinned.isNotEmpty()) {
+                item { IosSectionHeader("Pinned") }
+                items(pinned, key = { it.id }) { chat ->
+                    ChatRow(
+                        chat = chat,
+                        selected = chat.id == ui.activeChatId,
+                        renaming = renamingChatId == chat.id,
+                        renameText = renameText,
+                        menuOpen = menuChatId == chat.id,
+                        folders = ui.folders,
+                        onSelect = { viewModel.selectChat(chat.id) },
+                        onRenameChange = { renameText = it },
+                        onRenameDone = {
+                            viewModel.renameChat(chat.id, renameText)
+                            renamingChatId = null
+                        },
+                        onMenuOpen = { menuChatId = chat.id },
+                        onMenuClose = { menuChatId = null },
+                        onRenameStart = {
+                            renameText = chat.title
+                            renamingChatId = chat.id
+                            menuChatId = null
+                        },
+                        onTogglePin = { viewModel.togglePin(chat.id, !chat.pinned) },
+                        onMoveToFolder = { folderId -> viewModel.moveChatToFolder(chat.id, folderId) },
+                        onDelete = { viewModel.deleteChat(chat.id) },
+                    )
+                }
+            }
+            item { IosSectionHeader(if (folderFilter != null) "Chats" else "Recents") }
+            if (others.isEmpty() && pinned.isEmpty()) {
+                item {
+                    Text(
+                        text = "No chats",
+                        color = colors.textMid,
+                        fontSize = 15.sp,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    )
+                }
+            }
+            items(others, key = { it.id }) { chat ->
+                ChatRow(
+                    chat = chat,
+                    selected = chat.id == ui.activeChatId,
+                    renaming = renamingChatId == chat.id,
+                    renameText = renameText,
+                    menuOpen = menuChatId == chat.id,
+                    folders = ui.folders,
+                    onSelect = { viewModel.selectChat(chat.id) },
+                    onRenameChange = { renameText = it },
+                    onRenameDone = {
+                        viewModel.renameChat(chat.id, renameText)
+                        renamingChatId = null
+                    },
+                    onMenuOpen = { menuChatId = chat.id },
+                    onMenuClose = { menuChatId = null },
+                    onRenameStart = {
+                        renameText = chat.title
+                        renamingChatId = chat.id
+                        menuChatId = null
+                    },
+                    onTogglePin = { viewModel.togglePin(chat.id, !chat.pinned) },
+                    onMoveToFolder = { folderId -> viewModel.moveChatToFolder(chat.id, folderId) },
+                    onDelete = { viewModel.deleteChat(chat.id) },
+                )
+            }
+            item { Spacer(Modifier.height(8.dp)) }
+        }
 
         DrawerFooter(
-            ui = ui,
-            onNavigate = onNavigate,
-            onOpenSettings = { onNavigate("settings") },
+            name = ui.displayName,
+            temporary = ui.temporary,
+            onTemporary = { viewModel.toggleTemporary() },
+            onSettings = { onNavigate("settings") },
         )
     }
 }
 
-/** 1. Drawer Header: Brand name + Prominent + New Chat button + Temporary Chat toggle */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun DrawerHeader(
-    viewModel: ChatViewModel,
-    ui: ChatViewModel.UiState,
+private fun ChatRow(
+    chat: Chat,
+    selected: Boolean,
+    renaming: Boolean,
+    renameText: String,
+    menuOpen: Boolean,
+    folders: List<ChatFolder>,
+    onSelect: () -> Unit,
+    onRenameChange: (String) -> Unit,
+    onRenameDone: () -> Unit,
+    onMenuOpen: () -> Unit,
+    onMenuClose: () -> Unit,
+    onRenameStart: () -> Unit,
+    onTogglePin: () -> Unit,
+    onMoveToFolder: (String?) -> Unit,
+    onDelete: () -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+    val colors = LocalMinoColors.current
+
+    if (renaming) {
+        BasicTextField(
+            value = renameText,
+            onValueChange = onRenameChange,
+            singleLine = true,
+            textStyle = TextStyle(color = colors.text, fontSize = 15.sp),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { onRenameDone() }),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 4.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(colors.bgRaised)
+                .padding(horizontal = 12.dp, vertical = 11.dp),
+        )
+        return
+    }
+
+    Box {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .padding(vertical = 1.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(if (selected) colors.bgRaised else androidx.compose.ui.graphics.Color.Transparent)
+                .combinedClickable(onClick = onSelect, onLongClick = onMenuOpen)
+                .padding(horizontal = 10.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Image(
-                painter = painterResource(R.drawable.mino_logo),
-                contentDescription = "Mino",
-                modifier = Modifier.size(24.dp),
-            )
-            Text(
-                text = "Mino AI",
-                color = TextPrimary,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 8.dp).weight(1f),
-            )
-            Box(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(if (ui.temporary) SelectedContainer else DarkCardSurface)
-                    .clickable { viewModel.toggleTemporary() }
-                    .padding(horizontal = 10.dp, vertical = 4.dp),
-            ) {
-                Text(
-                    text = if (ui.temporary) "Temp On" else "Temporary",
-                    color = if (ui.temporary) TextPrimary else TextSecondary,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
+            if (chat.pinned) {
+                Icon(
+                    Icons.Filled.PushPin,
+                    contentDescription = null,
+                    tint = colors.textMid,
+                    modifier = Modifier.size(13.dp).padding(end = 5.dp),
                 )
             }
-        }
-
-        Button(
-            onClick = { viewModel.startNewChat() },
-            modifier = Modifier
-                .fillMaxWidth()
-                .defaultMinSize(minHeight = 48.dp)
-                .padding(top = 4.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = DarkCardSurface,
-                contentColor = TextPrimary,
-            ),
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp), tint = TextPrimary)
             Text(
-                text = "New Chat",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(start = 8.dp),
+                text = chat.title,
+                color = if (selected) colors.textHi else colors.text,
+                fontSize = 15.sp,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = Rules.timeAgo(System.currentTimeMillis(), chat.updatedAt),
+                color = colors.textMid,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(start = 6.dp),
             )
         }
-    }
-}
 
-/** 2. Vertical Quick Links Navigation Section */
-@Composable
-private fun DrawerNavigationSection(
-    viewModel: ChatViewModel,
-    ui: ChatViewModel.UiState,
-    onNavigate: (String) -> Unit,
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        NavigationDrawerItem(
-            icon = { Icon(painter = painterResource(R.drawable.ic_book_search), contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp)) },
-            label = { Text("Search Conversations", color = TextSecondary, fontSize = 13.sp) },
-            selected = false,
-            onClick = { viewModel.setSearchOpen(true) },
-            modifier = Modifier.defaultMinSize(minHeight = 48.dp),
-            colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent),
-        )
-
-        NavigationDrawerItem(
-            icon = { Icon(painter = painterResource(R.drawable.ic_images), contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp)) },
-            label = { Text("Gallery & Images", color = TextSecondary, fontSize = 13.sp) },
-            selected = false,
-            onClick = { viewModel.setGalleryOpen(true) },
-            modifier = Modifier.defaultMinSize(minHeight = 48.dp),
-            colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent),
-        )
-
-        NavigationDrawerItem(
-            icon = { Icon(painter = painterResource(R.drawable.ic_trash), contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp)) },
-            label = { Text("Trash", color = TextSecondary, fontSize = 13.sp) },
-            badge = {
-                if (ui.trash.isNotEmpty()) {
-                    Badge(containerColor = SelectedContainer, contentColor = TextPrimary) {
-                        Text(ui.trash.size.toString(), fontSize = 10.sp)
-                    }
-                }
-            },
-            selected = false,
-            onClick = { viewModel.setTrashOpen(true) },
-            modifier = Modifier.defaultMinSize(minHeight = 48.dp),
-            colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent),
-        )
-
-        val dewBalance = ui.dew?.balance
-        val dewText = if (dewBalance != null) {
-            "${"%.3f".format(dewBalance).trimEnd('0').trimEnd('.')} Dew"
-        } else {
-            "Mino Plus"
-        }
-
-        NavigationDrawerItem(
-            icon = { Icon(painter = painterResource(R.drawable.ic_wallet), contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp)) },
-            label = { Text(dewText, color = TextSecondary, fontSize = 13.sp, fontWeight = FontWeight.Medium) },
-            selected = false,
-            onClick = { onNavigate("plus") },
-            modifier = Modifier.defaultMinSize(minHeight = 48.dp),
-            colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent),
-        )
-
-        NavigationDrawerItem(
-            icon = { Icon(painter = painterResource(R.drawable.ic_coins), contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp)) },
-            label = { Text("Support Mino", color = TextSecondary, fontSize = 13.sp) },
-            selected = false,
-            onClick = { onNavigate("donate") },
-            modifier = Modifier.defaultMinSize(minHeight = 48.dp),
-            colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent),
+        ChatRowMenu(
+            expanded = menuOpen,
+            pinned = chat.pinned,
+            folders = folders,
+            onDismiss = onMenuClose,
+            onPin = onTogglePin,
+            onMove = onMoveToFolder,
+            onRename = onRenameStart,
+            onDelete = onDelete,
         )
     }
 }
 
-/** 3. Folder Filter Section */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FolderSection(
@@ -309,104 +386,96 @@ private fun FolderSection(
     onRenameFolder: (String, String) -> Unit,
     onDeleteFolder: (String) -> Unit,
 ) {
+    val colors = LocalMinoColors.current
     var showCreateDialog by remember { mutableStateOf(false) }
     var newFolderName by remember { mutableStateOf("") }
     var menuFolderId by remember { mutableStateOf<String?>(null) }
     var renamingFolderId by remember { mutableStateOf<String?>(null) }
     var folderRenameText by remember { mutableStateOf("") }
 
-    Column(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "FOLDERS",
-                color = TextSecondary,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.2.sp,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = "+ New",
-                color = TextPrimary,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { showCreateDialog = true }
-                    .padding(horizontal = 6.dp, vertical = 2.dp),
-            )
-        }
-
-        Row(
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 4.dp, top = 16.dp, bottom = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "Folders",
+            color = colors.textMid,
+            fontSize = 13.sp,
+            modifier = Modifier.weight(1f),
+        )
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { showCreateDialog = true }
+                .padding(horizontal = 8.dp, vertical = 4.dp),
         ) {
-            FolderChip(
-                label = "All",
-                active = activeFolderId == null,
-                onDelete = null,
-                onClick = { onSelectFolder(null) },
-                onLongClick = {},
-            )
-            folders.forEach { folder ->
-                val active = activeFolderId == folder.id
-                Box {
-                    if (renamingFolderId == folder.id) {
-                        BasicTextField(
-                            value = folderRenameText,
-                            onValueChange = { folderRenameText = it },
-                            singleLine = true,
-                            textStyle = TextStyle(color = TextPrimary, fontSize = 12.sp),
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                            keyboardActions = KeyboardActions(onDone = {
-                                if (folderRenameText.isNotBlank()) {
-                                    onRenameFolder(folder.id, folderRenameText)
-                                }
-                                renamingFolderId = null
-                            }),
-                            modifier = Modifier
-                                .padding(end = 6.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(SelectedContainer)
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                        )
-                    } else {
-                        FolderChip(
-                            label = folder.name,
-                            active = active,
-                            onDelete = { onDeleteFolder(folder.id); if (active) onSelectFolder(null) },
-                            onClick = { onSelectFolder(if (active) null else folder.id) },
-                            onLongClick = { menuFolderId = folder.id },
-                        )
-                    }
+            Text("New", color = colors.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        }
+    }
 
-                    DropdownMenu(
-                        expanded = menuFolderId == folder.id,
-                        onDismissRequest = { menuFolderId = null },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Rename", color = TextPrimary) },
-                            onClick = {
-                                folderRenameText = folder.name
-                                renamingFolderId = folder.id
-                                menuFolderId = null
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Delete", color = Color(0xFFEF5350)) },
-                            onClick = {
-                                onDeleteFolder(folder.id)
-                                if (active) onSelectFolder(null)
-                                menuFolderId = null
-                            },
-                        )
-                    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(bottom = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        FolderChip(
+            label = "All",
+            active = activeFolderId == null,
+            onDelete = null,
+            onClick = { onSelectFolder(null) },
+            onLongClick = {},
+        )
+        folders.forEach { folder ->
+            val active = activeFolderId == folder.id
+            Box {
+                if (renamingFolderId == folder.id) {
+                    BasicTextField(
+                        value = folderRenameText,
+                        onValueChange = { folderRenameText = it },
+                        singleLine = true,
+                        textStyle = TextStyle(color = colors.text, fontSize = 13.sp),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = {
+                            if (folderRenameText.isNotBlank()) onRenameFolder(folder.id, folderRenameText)
+                            renamingFolderId = null
+                        }),
+                        modifier = Modifier
+                            .padding(end = 6.dp)
+                            .clip(CircleShape)
+                            .background(colors.bgRaised)
+                            .padding(horizontal = 12.dp, vertical = 7.dp),
+                    )
+                } else {
+                    FolderChip(
+                        label = folder.name,
+                        active = active,
+                        onDelete = { onDeleteFolder(folder.id); if (active) onSelectFolder(null) },
+                        onClick = { onSelectFolder(if (active) null else folder.id) },
+                        onLongClick = { menuFolderId = folder.id },
+                    )
+                }
+
+                DropdownMenu(expanded = menuFolderId == folder.id, onDismissRequest = { menuFolderId = null }) {
+                    DropdownMenuItem(
+                        text = { Text("Rename", color = colors.text) },
+                        onClick = {
+                            folderRenameText = folder.name
+                            renamingFolderId = folder.id
+                            menuFolderId = null
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Delete", color = colors.danger) },
+                        onClick = {
+                            onDeleteFolder(folder.id)
+                            if (active) onSelectFolder(null)
+                            menuFolderId = null
+                        },
+                    )
                 }
             }
         }
@@ -415,22 +484,20 @@ private fun FolderSection(
     if (showCreateDialog) {
         AlertDialog(
             onDismissRequest = { showCreateDialog = false },
-            title = { Text("New Folder", color = TextPrimary) },
+            title = { Text("New Folder", color = colors.textHi, fontSize = 17.sp, fontWeight = FontWeight.SemiBold) },
             text = {
                 BasicTextField(
                     value = newFolderName,
                     onValueChange = { newFolderName = it },
                     singleLine = true,
-                    textStyle = TextStyle(color = TextPrimary, fontSize = 15.sp),
+                    textStyle = TextStyle(color = colors.text, fontSize = 17.sp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(DarkCardSurface)
-                        .padding(14.dp),
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(colors.fill)
+                        .padding(12.dp),
                     decorationBox = { inner ->
-                        if (newFolderName.isEmpty()) {
-                            Text("Folder name", color = TextSecondary)
-                        }
+                        if (newFolderName.isEmpty()) Text("Name", color = colors.textMid, fontSize = 17.sp)
                         inner()
                     },
                 )
@@ -443,15 +510,16 @@ private fun FolderSection(
                         showCreateDialog = false
                     }
                 }) {
-                    Text("Create", color = TextPrimary, fontWeight = FontWeight.Bold)
+                    Text("Create", color = colors.accent, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showCreateDialog = false }) {
-                    Text("Cancel", color = TextSecondary)
+                    Text("Cancel", color = colors.accent)
                 }
             },
-            containerColor = DarkCardSurface,
+            containerColor = colors.bgRaised,
+            shape = RoundedCornerShape(14.dp),
         )
     }
 }
@@ -465,36 +533,33 @@ private fun FolderChip(
     onClick: () -> Unit,
     onLongClick: () -> Unit = {},
 ) {
+    val colors = LocalMinoColors.current
     Row(
         modifier = Modifier
             .padding(end = 6.dp)
             .clip(CircleShape)
-            .background(if (active) SelectedContainer else DarkCardSurface)
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick,
-            )
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .background(if (active) colors.accent else colors.bgRaised)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .padding(horizontal = 11.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             Icons.Filled.Folder,
             contentDescription = null,
-            tint = if (active) TextPrimary else TextSecondary,
+            tint = if (active) colors.onAccent else colors.textMid,
             modifier = Modifier.size(12.dp),
         )
         Text(
             text = label,
-            color = if (active) TextPrimary else TextSecondary,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(start = 6.dp, end = if (onDelete != null) 4.dp else 0.dp),
+            color = if (active) colors.onAccent else colors.text,
+            fontSize = 13.sp,
+            modifier = Modifier.padding(start = 5.dp, end = if (onDelete != null) 3.dp else 0.dp),
         )
         if (onDelete != null) {
             Icon(
                 Icons.Filled.Close,
-                contentDescription = "Delete",
-                tint = TextSecondary,
+                contentDescription = "Delete folder",
+                tint = if (active) colors.onAccent else colors.textMid,
                 modifier = Modifier
                     .size(12.dp)
                     .clickable { onDelete() },
@@ -503,204 +568,82 @@ private fun FolderChip(
     }
 }
 
-/** 4. Chat History List with M3 items, leading chat bubble/pin icons, and timestamps */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun ChatHistoryList(
-    chats: List<Chat>,
-    activeChatId: String?,
-    renamingChatId: String?,
-    renameText: String,
-    menuChatId: String?,
-    folders: List<ChatFolder>,
-    onSelectChat: (String) -> Unit,
-    onMenuOpen: (String) -> Unit,
-    onMenuClose: () -> Unit,
-    onRenameStart: (Chat) -> Unit,
-    onRenameChange: (String) -> Unit,
-    onRenameDone: (String) -> Unit,
-    onTogglePin: (String, Boolean) -> Unit,
-    onMoveToFolder: (String, String?) -> Unit,
-    onDeleteChat: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val now = System.currentTimeMillis()
-
-    LazyColumn(modifier = modifier) {
-        items(chats, key = { it.id }) { chat ->
-            val isSelected = chat.id == activeChatId
-            if (renamingChatId == chat.id) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    BasicTextField(
-                        value = renameText,
-                        onValueChange = onRenameChange,
-                        singleLine = true,
-                        textStyle = TextStyle(color = TextPrimary, fontSize = 13.sp),
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { onRenameDone(chat.id) }),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(DarkCardSurface)
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                    )
-                }
-            } else {
-                Box {
-                    NavigationDrawerItem(
-                        icon = {
-                            Icon(
-                                if (chat.pinned) Icons.Filled.PushPin else Icons.AutoMirrored.Outlined.Chat,
-                                contentDescription = null,
-                                tint = if (chat.pinned) TextPrimary else if (isSelected) TextPrimary else TextSecondary,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        },
-                        label = {
-                            Text(
-                                text = chat.title,
-                                color = if (isSelected) TextPrimary else TextPrimary.copy(alpha = 0.85f),
-                                fontSize = 13.sp,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        },
-                        badge = {
-                            Text(
-                                text = Rules.timeAgo(now, chat.updatedAt),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextSecondary,
-                            )
-                        },
-                        selected = isSelected,
-                        onClick = { onSelectChat(chat.id) },
-                        modifier = Modifier
-                            .defaultMinSize(minHeight = 48.dp)
-                            .combinedClickable(
-                                onClick = { onSelectChat(chat.id) },
-                                onLongClick = { onMenuOpen(chat.id) },
-                            ),
-                        colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = SelectedContainer,
-                            unselectedContainerColor = Color.Transparent,
-                        ),
-                    )
-
-                    ChatRowMenu(
-                        expanded = menuChatId == chat.id,
-                        chatId = chat.id,
-                        pinned = chat.pinned,
-                        folders = folders,
-                        onDismiss = onMenuClose,
-                        onPin = { onTogglePin(chat.id, !chat.pinned) },
-                        onMove = { folderId -> onMoveToFolder(chat.id, folderId) },
-                        onRename = { onRenameStart(chat) },
-                        onDelete = { onDeleteChat(chat.id) },
-                    )
-                }
-            }
-        }
-    }
-}
-
-/** 5. Drawer Footer: Profile card anchored to bottom with Avatar, Display Name, and Settings */
 @Composable
 private fun DrawerFooter(
-    ui: ChatViewModel.UiState,
-    onNavigate: (String) -> Unit,
-    onOpenSettings: () -> Unit,
+    name: String?,
+    temporary: Boolean,
+    onTemporary: () -> Unit,
+    onSettings: () -> Unit,
 ) {
-    Column(
+    val colors = LocalMinoColors.current
+    Box(Modifier.fillMaxWidth().height(0.5.dp).background(colors.line))
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 8.dp),
+            .clickable { onSettings() }
+            .padding(horizontal = 4.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        HorizontalDivider(color = DividerColor, modifier = Modifier.padding(bottom = 8.dp))
-
-        Row(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(DarkCardSurface)
-                .clickable { onOpenSettings() }
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .size(34.dp)
+                .clip(CircleShape)
+                .background(if (temporary) colors.amber else colors.accent),
+            contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(SelectedContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = (ui.displayName ?: "M").take(1).uppercase(),
-                    color = TextPrimary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                )
+            Text(
+                text = (name ?: "M").take(1).uppercase(),
+                color = colors.onAccent,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        Column(
+            modifier = Modifier
+                .padding(start = 10.dp)
+                .weight(1f),
+        ) {
+            Text(
+                text = name ?: "You",
+                color = colors.text,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (temporary) {
+                Text("Temporary", color = colors.amber, fontSize = 12.sp)
             }
-
-            Column(
-                modifier = Modifier
-                    .padding(start = 10.dp)
-                    .weight(1f),
-            ) {
-                Text(
-                    text = ui.displayName ?: "User",
-                    color = TextPrimary,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "News",
-                        color = TextSecondary,
-                        fontSize = 11.sp,
-                        modifier = Modifier
-                            .clickable { onNavigate("notes") }
-                            .padding(end = 8.dp),
-                    )
-                    Text(
-                        text = "About",
-                        color = TextSecondary,
-                        fontSize = 11.sp,
-                        modifier = Modifier
-                            .clickable { onNavigate("about") },
-                    )
-                }
-            }
-
-            IconButton(
-                onClick = { onOpenSettings() },
-                modifier = Modifier
-                    .size(36.dp)
-                    .defaultMinSize(minHeight = 48.dp, minWidth = 48.dp),
-            ) {
-                Icon(
-                    Icons.Filled.Settings,
-                    contentDescription = "Settings",
-                    tint = TextSecondary,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
+        }
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { onTemporary() },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Filled.AccessTime,
+                contentDescription = "Temporary chat",
+                tint = if (temporary) colors.amber else colors.textMid,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { onSettings() },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = colors.textMid, modifier = Modifier.size(19.dp))
         }
     }
 }
 
-/** Contextual Menu for Chat Items */
 @Composable
 private fun ChatRowMenu(
     expanded: Boolean,
-    chatId: String,
     pinned: Boolean,
     folders: List<ChatFolder>,
     onDismiss: () -> Unit,
@@ -709,33 +652,40 @@ private fun ChatRowMenu(
     onRename: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val colors = LocalMinoColors.current
     var moveOpen by remember { mutableStateOf(false) }
 
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         DropdownMenuItem(
-            text = { Text(if (pinned) "Unpin" else "Pin", color = TextPrimary) },
+            text = { Text(if (pinned) "Unpin" else "Pin", color = colors.text) },
             onClick = onPin,
-            trailingIcon = { Icon(Icons.Outlined.PushPin, null, tint = TextSecondary) },
+            trailingIcon = { Icon(Icons.Filled.PushPin, null, tint = colors.textMid, modifier = Modifier.size(18.dp)) },
         )
         DropdownMenuItem(
-            text = { Text("Move to folder", color = TextPrimary) },
+            text = { Text("Move", color = colors.text) },
             onClick = { moveOpen = true },
-            trailingIcon = { Icon(Icons.Filled.Folder, null, tint = TextSecondary) },
+            trailingIcon = { Icon(Icons.Filled.Folder, null, tint = colors.textMid, modifier = Modifier.size(18.dp)) },
         )
         if (moveOpen) {
-            DropdownMenuItem(text = { Text("No folder", fontSize = 12.sp, color = TextPrimary) }, onClick = { onMove(null) })
+            DropdownMenuItem(
+                text = { Text("No folder", fontSize = 13.sp, color = colors.text) },
+                onClick = { onMove(null) },
+            )
             folders.forEach { folder ->
                 DropdownMenuItem(
-                    text = { Text(folder.name, fontSize = 12.sp, color = TextPrimary) },
+                    text = { Text(folder.name, fontSize = 13.sp, color = colors.text) },
                     onClick = { onMove(folder.id) },
                 )
             }
         }
-        DropdownMenuItem(text = { Text("Rename", color = TextPrimary) }, onClick = onRename)
         DropdownMenuItem(
-            text = { Text("Delete", color = DestructiveRed) },
+            text = { Text("Rename", color = colors.text) },
+            onClick = onRename,
+        )
+        DropdownMenuItem(
+            text = { Text("Delete", color = colors.danger) },
             onClick = onDelete,
-            trailingIcon = { Icon(Icons.Filled.Delete, null, tint = DestructiveRed) },
+            trailingIcon = { Icon(Icons.Filled.Delete, null, tint = colors.danger, modifier = Modifier.size(18.dp)) },
         )
     }
 }

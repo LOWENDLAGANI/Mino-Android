@@ -97,7 +97,6 @@ class SseChatClient(private val api: ApiClient) {
     }
 
     companion object {
-        const val NETWORK_ERROR =
-            "Mino could not reach the server. Check the server address in Settings → Server."
+        const val NETWORK_ERROR = "Server unreachable"
     }
 }

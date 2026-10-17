@@ -2,14 +2,22 @@ package com.minetallest.mino.util
 
 import android.content.Context
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import com.minetallest.mino.domain.Markdown
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.Locale
 
-/** Spec §10.8 — read aloud: one message at a time, code blocks announced, links stripped. */
+/** Read aloud: one message at a time, code blocks announced, links stripped. */
 class TtsManager(context: Context) {
 
     private var engine: TextToSpeech? = null
     private var ready = false
+
+    private val _available = MutableStateFlow(false)
+    /** Observable engine readiness so the UI can reveal the read-aloud action. */
+    val available: StateFlow<Boolean> = _available.asStateFlow()
 
     /** id of the message currently speaking, or null. */
     @Volatile
@@ -25,6 +33,25 @@ class TtsManager(context: Context) {
         engine = TextToSpeech(context) { status ->
             ready = status == TextToSpeech.SUCCESS
             supported = ready
+            _available.value = ready
+            if (ready) {
+                engine?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                    override fun onStart(utteranceId: String?) = Unit
+
+                    override fun onDone(utteranceId: String?) {
+                        clearSpeaking()
+                    }
+
+                    @Deprecated("Deprecated in Java")
+                    override fun onError(utteranceId: String?) {
+                        clearSpeaking()
+                    }
+
+                    override fun onError(utteranceId: String?, errorCode: Int) {
+                        clearSpeaking()
+                    }
+                })
+            }
             onSpeakingChanged?.invoke(speakingMessageId)
         }
     }
@@ -39,13 +66,17 @@ class TtsManager(context: Context) {
         val text = Markdown.toSpeech(markdown)
         if (text.isBlank()) return
         tts.language = Locale.getDefault()
-        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "mino-$messageId")
         speakingMessageId = messageId
         onSpeakingChanged?.invoke(messageId)
+        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "mino-$messageId")
     }
 
     fun stop() {
         engine?.stop()
+        clearSpeaking()
+    }
+
+    private fun clearSpeaking() {
         if (speakingMessageId != null) {
             speakingMessageId = null
             onSpeakingChanged?.invoke(null)
@@ -56,5 +87,7 @@ class TtsManager(context: Context) {
         engine?.stop()
         engine?.shutdown()
         engine = null
+        ready = false
+        _available.value = false
     }
 }

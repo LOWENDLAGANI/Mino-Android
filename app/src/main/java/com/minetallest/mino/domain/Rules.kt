@@ -91,23 +91,18 @@ object Refusals {
 
     const val KILL_SWITCH = "Mino is paused right now. Please try again shortly."
 
-    const val PAUSED_PLAN =
-        "Your Mino plan is on hold right now. The time you paid for is saved and will pick up " +
-            "where it left off — message the person who runs this Mino to continue it."
+    const val PAUSED_PLAN = "Plan on hold"
 
     const val EMPTY_RESPONSE = "Mino returned an empty response. Try again."
 
-    const val MODEL_CHANGED =
-        "The model was changed automatically because the current model is experiencing a problem."
+    const val MODEL_CHANGED = "Model switched"
 
-    const val TRUNCATED_NOTICE =
-        "Mino tried other models and this answer still stops partway, because it hit their length " +
-            "limit too. Ask it to continue and it will pick up from where it left off."
+    const val TRUNCATED_NOTICE = "Answer shortened"
 
-    const val SEARCH_NO_SOURCE = "Mino checked the web but could not find a usable source."
+    const val SEARCH_NO_SOURCE = "No sources found"
 
-    const val VOICE_UNSUPPORTED = "Voice input is not supported in this browser"
-    const val VOICE_FAILED = "Voice input could not be started"
+    const val VOICE_UNSUPPORTED = "Voice input is unavailable"
+    const val VOICE_FAILED = "Voice input failed"
 
     const val MEMORY_TEXT_LIMIT = 200
 

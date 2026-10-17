@@ -6,19 +6,16 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,24 +30,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.minetallest.mino.MinoApp
 import com.minetallest.mino.net.AppConfig
 import com.minetallest.mino.ui.chat.ChatViewModel
+import com.minetallest.mino.ui.theme.IosNavBar
 import com.minetallest.mino.ui.theme.LocalMinoColors
-import kotlinx.coroutines.launch
 
-/**
- * Spec §12 — the admin console, reachable only after the ten-tap gate on /about
- * (and only after the server rules confirm `isAdmin`).
- *
- * Nine sections: Diagnostics · People · Runtime controls · Banned · Redeem codes ·
- * Notes · Model health · Push · Wipes. Every write is sent with this device's own
- * token so the rules make the final call — the client never decides who admin is.
- */
+/** Admin console, reachable only after the ten-tap gate confirms `isAdmin`. */
 @Composable
 fun AdminScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
     val colors = LocalMinoColors.current
@@ -65,7 +54,6 @@ fun AdminScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
     var status by remember { mutableStateOf<String?>(null) }
     var config by remember { mutableStateOf<AppConfig?>(null) }
     var isAdmin by remember { mutableStateOf<Boolean?>(null) }
-    var identityHint by remember { mutableStateOf<String?>(null) }
 
     val sections = listOf(
         "Diagnostics", "People", "Controls", "Banned",
@@ -78,7 +66,6 @@ fun AdminScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
     }
 
     LaunchedEffect(Unit) {
-        identityHint = container.identity.uid()
         val result = admin.readConfig()
         if (result != null) {
             isAdmin = result.first
@@ -88,113 +75,103 @@ fun AdminScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
         }
     }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.background)
-            .statusBarsPadding()
+            .background(colors.groupedBackground)
             .navigationBarsPadding(),
-        contentAlignment = Alignment.TopCenter,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .widthIn(max = 680.dp)
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-        ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = colors.text,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .clickable { onBack() }
-                    .padding(6.dp),
+        Box(Modifier.fillMaxWidth().widthIn(max = 680.dp)) {
+            IosNavBar(
+                title = "Admin",
+                onBack = onBack,
+                trailing = {
+                    Text(
+                        text = when (isAdmin) {
+                            true -> "Admin"
+                            false -> "Denied"
+                            null -> "…"
+                        },
+                        color = if (isAdmin == false) colors.danger else colors.textMid,
+                        fontSize = 13.sp,
+                    )
+                },
             )
-            Text("  Admin console", color = colors.textHi, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
         }
-
-        Text(
-            text = when (isAdmin) {
-                true -> "Verified by the rules: this device is the admin."
-                false -> "Refused by the rules. " +
-                    "Show my email: ${identityHint ?: "unidentified on this device"}"
-                null -> "Checking identity…"
-            },
-            color = if (isAdmin == false) colors.amber else colors.textMid,
-            fontSize = 12.sp,
-            lineHeight = 16.sp,
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        )
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 14.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(colors.bgRaised)
+                .widthIn(max = 680.dp)
                 .horizontalScroll(rememberScrollState())
-                .padding(6.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             sections.forEachIndexed { index, label ->
+                val selected = section == index
                 Text(
                     text = label,
-                    color = if (section == index) colors.onAccent else colors.textMid,
-                    fontSize = 11.sp,
-                    fontWeight = if (section == index) FontWeight.SemiBold else FontWeight.Normal,
-                    textAlign = TextAlign.Center,
+                    color = if (selected) colors.onAccent else colors.text,
+                    fontSize = 13.sp,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (section == index) colors.accent else colors.background)
+                        .clip(CircleShape)
+                        .background(if (selected) colors.accent else colors.bgRaised)
                         .clickable { section = index }
-                        .padding(vertical = 8.dp, horizontal = 10.dp),
+                        .padding(horizontal = 12.dp, vertical = 7.dp),
                 )
             }
         }
 
-        busy?.let {
-            Text(it, color = colors.amber, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
-        }
-        status?.let {
-            Text(it, color = colors.mint, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
-        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 680.dp)
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp),
+        ) {
+            busy?.let {
+                Text(it, color = colors.amber, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+            }
+            status?.let {
+                Text(it, color = colors.mint, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+            }
 
-        Column(Modifier.fillMaxWidth().padding(top = 16.dp)) {
-            when (section) {
-                0 -> DiagnosticsSection(viewModel, config)
-                1 -> PeopleSection(admin, scope, { busy = it }, { report(it) })
-                2 -> ControlsSection(
-                    config = config,
-                    scope = scope,
-                    admin = admin,
-                    onSaved = { next ->
-                        config = next
-                        viewModel.refreshServerState()
-                    },
-                    onBusy = { busy = it },
-                    onDone = { report(it) },
-                )
-                3 -> BansSection(admin, scope, { busy = it }, { report(it) })
-                4 -> CodesSection(admin, scope, { busy = it }, { report(it) })
-                5 -> NotesSection(
-                    config = config,
-                    scope = scope,
-                    admin = admin,
-                    onSaved = { next ->
-                        config = next
-                        viewModel.refreshServerState()
-                    },
-                    onBusy = { busy = it },
-                    onDone = { report(it) },
-                )
-                6 -> ModelsSection(admin, scope, { busy = it }, { report(it) })
-                7 -> PushSection(admin, scope, { busy = it }, { report(it) })
-                8 -> WipesSection(admin, scope, { busy = it }, { report(it) })
+            Box(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 28.dp)) {
+                when (section) {
+                    0 -> DiagnosticsSection(viewModel, config)
+                    1 -> PeopleSection(admin, scope, { busy = it }, { report(it) })
+                    2 -> ControlsSection(
+                        config = config,
+                        scope = scope,
+                        admin = admin,
+                        onSaved = { next ->
+                            config = next
+                            viewModel.refreshServerState()
+                        },
+                        onBusy = { busy = it },
+                        onDone = { report(it) },
+                    )
+                    3 -> BansSection(admin, scope, { busy = it }, { report(it) })
+                    4 -> CodesSection(admin, scope, { busy = it }, { report(it) })
+                    5 -> NotesSection(
+                        config = config,
+                        scope = scope,
+                        admin = admin,
+                        onSaved = { next ->
+                            config = next
+                            viewModel.refreshServerState()
+                        },
+                        onBusy = { busy = it },
+                        onDone = { report(it) },
+                    )
+                    6 -> ModelsSection(admin, scope, { busy = it }, { report(it) })
+                    7 -> PushSection(admin, scope, { busy = it }, { report(it) })
+                    8 -> WipesSection(admin, scope, { busy = it }, { report(it) })
+                }
             }
         }
     }
-}
 }

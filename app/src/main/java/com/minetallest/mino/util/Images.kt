@@ -47,7 +47,7 @@ object Images {
             }
             val output = ByteArrayOutputStream()
             bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, output)
-            if (bitmap !== null && !bitmap.isRecycled) bitmap.recycle()
+            if (!bitmap.isRecycled) bitmap.recycle()
             val bytes = output.toByteArray()
             val name = queryDisplayName(context, uri) ?: "image.jpg"
             ImageAttachment(

@@ -73,9 +73,9 @@ fun MarkdownText(
                 is Markdown.Block.Heading -> {
                     val annotated = inlineToAnnotated(block.inlines, baseColor, linkColor)
                     val fontSize = when (block.level) {
-                        1 -> 18.sp
-                        2 -> 16.sp
-                        else -> 15.sp
+                        1 -> 21.sp
+                        2 -> 19.sp
+                        else -> 17.sp
                     }
                     ClickableText(
                         text = annotated,
@@ -88,7 +88,7 @@ fun MarkdownText(
                     val annotated = inlineToAnnotated(block.inlines, baseColor, linkColor)
                     ClickableText(
                         text = annotated,
-                        style = TextStyle(color = baseColor, fontSize = 15.sp, lineHeight = 22.sp),
+                        style = TextStyle(color = baseColor, fontSize = 17.sp, lineHeight = 24.sp),
                         onClick = { offset -> handleUrlClick(annotated, offset) },
                         modifier = Modifier.padding(vertical = 3.dp),
                     )
@@ -102,10 +102,10 @@ fun MarkdownText(
                     block.items.forEach { item ->
                         val annotated = inlineToAnnotated(item, baseColor, linkColor)
                         Row(Modifier.padding(vertical = 2.dp)) {
-                            Text("•  ", color = baseColor, fontSize = 15.sp)
+                            Text("•  ", color = baseColor, fontSize = 17.sp)
                             ClickableText(
                                 text = annotated,
-                                style = TextStyle(color = baseColor, fontSize = 15.sp, lineHeight = 22.sp),
+                                style = TextStyle(color = baseColor, fontSize = 17.sp, lineHeight = 24.sp),
                                 onClick = { offset -> handleUrlClick(annotated, offset) },
                                 modifier = Modifier.weight(1f),
                             )
@@ -116,10 +116,10 @@ fun MarkdownText(
                     block.items.forEachIndexed { index, item ->
                         val annotated = inlineToAnnotated(item, baseColor, linkColor)
                         Row(Modifier.padding(vertical = 2.dp)) {
-                            Text("${index + 1}.  ", color = baseColor, fontSize = 15.sp)
+                            Text("${index + 1}.  ", color = baseColor, fontSize = 17.sp)
                             ClickableText(
                                 text = annotated,
-                                style = TextStyle(color = baseColor, fontSize = 15.sp, lineHeight = 22.sp),
+                                style = TextStyle(color = baseColor, fontSize = 17.sp, lineHeight = 24.sp),
                                 onClick = { offset -> handleUrlClick(annotated, offset) },
                                 modifier = Modifier.weight(1f),
                             )
@@ -130,7 +130,7 @@ fun MarkdownText(
                     val annotated = inlineToAnnotated(block.inlines, colors.textMid, linkColor)
                     ClickableText(
                         text = annotated,
-                        style = TextStyle(color = colors.textMid, fontSize = 14.sp, lineHeight = 21.sp),
+                        style = TextStyle(color = colors.textMid, fontSize = 16.sp, lineHeight = 23.sp),
                         onClick = { offset -> handleUrlClick(annotated, offset) },
                         modifier = Modifier
                             .padding(vertical = 4.dp)
@@ -186,8 +186,8 @@ private fun CodeBlock(lang: String?, code: String, closed: Boolean) {
         Text(
             text = code + if (!closed) "▍" else "",
             color = colors.text,
-            fontSize = 12.5.sp,
-            lineHeight = 18.sp,
+            fontSize = 13.sp,
+            lineHeight = 19.sp,
             fontFamily = FontFamily.Monospace,
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())

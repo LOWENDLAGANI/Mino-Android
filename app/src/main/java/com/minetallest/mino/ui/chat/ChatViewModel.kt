@@ -113,13 +113,6 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
 
     private var streamHandle: SseChatClient.Handle? = null
     private var memoryRun = 0
-    private val waitingJokes = listOf(
-        "umm, finding ai suitable for your weird request",
-        "Whatt?",
-        "Almost done.. Just kidding",
-        "Hacking your computer",
-        "Please wait while we're staying your data",
-    )
 
     init {
         observeEverything()
@@ -188,12 +181,9 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
             }
             val config = container.config.read()
             if (config != null) {
-                _ui.update { it.copy(config = config) }
-                val ack = prefs.subscriptionAck.first()
-                val newest = config.notes.maxOfOrNull { note -> note.id.hashCode().toLong() } ?: 0L
-                if (newest > ack && config.notes.isNotEmpty()) {
-                    _ui.update { it.copy(newNoteIds = config.notes.map { n -> n.id }) }
-                }
+                val seenNotes = prefs.notesSeen.first()
+                val unseenNotes = config.notes.filter { it.id !in seenNotes }
+                _ui.update { it.copy(config = config, newNoteIds = unseenNotes.map { note -> note.id }) }
             }
             if (container.firebaseConfigured) {
                 container.identity.ensureSignedIn()
@@ -431,7 +421,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
                 }
                 is MinoApi.ImageResult.Error -> notice(result.message, Notice.Tone.RED)
                 MinoApi.ImageResult.NotConfigured ->
-                    notice("Mino's image model is not set up on this server yet.", Notice.Tone.AMBER)
+                    notice("Image model unavailable", Notice.Tone.AMBER)
             }
             _composer.update { it.copy(imageGenerating = false) }
         }
@@ -487,7 +477,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         )
         putAssistant(placeholder)
         _ui.update {
-            it.copy(streaming = true, streamHint = waitingJokes.random(), modelNotice = false, memorySuggestion = emptyList())
+            it.copy(streaming = true, streamHint = null, modelNotice = false, memorySuggestion = emptyList())
         }
 
         val request = Wire.buildChatRequest(

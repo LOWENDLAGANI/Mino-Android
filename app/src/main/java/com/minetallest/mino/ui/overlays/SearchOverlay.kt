@@ -7,17 +7,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -34,79 +33,100 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.minetallest.mino.domain.LocalSearch
 import com.minetallest.mino.ui.chat.ChatViewModel
 import com.minetallest.mino.ui.theme.LocalMinoColors
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 
-/** Spec §10.6 — palette search: titles + message text, newest first, ≤30, opens the chat. */
+/** Full-screen search: field at the top, live results below. */
 @Composable
 fun SearchOverlay(viewModel: ChatViewModel) {
     val colors = LocalMinoColors.current
     var query by remember { mutableStateOf("") }
     val hits = remember(query) { viewModel.searchAll(query) }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.background.copy(alpha = 0.65f))
-            .clickable { viewModel.setSearchOpen(false) },
-        contentAlignment = Alignment.TopCenter,
+            .background(colors.background)
+            .statusBarsPadding()
+            .navigationBarsPadding(),
     ) {
-        Column(
+        Row(
             modifier = Modifier
-                .padding(top = 72.dp, start = 16.dp, end = 16.dp)
                 .fillMaxWidth()
-                .widthIn(max = 520.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .background(colors.menuBackground)
-                .clickable { /* consume */ }
-                .padding(14.dp),
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.Search, null, tint = colors.textMid, modifier = Modifier.size(16.dp))
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(colors.fill)
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Filled.Search, contentDescription = null, tint = colors.textMid, modifier = Modifier.padding(horizontal = 2.dp))
                 BasicTextField(
                     value = query,
                     onValueChange = { query = it },
                     singleLine = true,
-                    textStyle = TextStyle(color = colors.textHi, fontSize = 15.sp),
+                    textStyle = TextStyle(color = colors.textHi, fontSize = 17.sp),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
+                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
                     decorationBox = { inner ->
-                        if (query.isEmpty()) {
-                            Text("Search chats…", color = colors.textLow, fontSize = 15.sp)
-                        }
+                        if (query.isEmpty()) Text("Search", color = colors.textMid, fontSize = 17.sp)
                         inner()
                     },
                 )
-                Icon(
-                    Icons.Filled.Close,
-                    contentDescription = "Close",
-                    tint = colors.textMid,
-                    modifier = Modifier.size(16.dp).clip(RoundedCornerShape(8.dp)).clickable { viewModel.setSearchOpen(false) },
-                )
             }
-            if (query.trim().length >= LocalSearch.MIN_QUERY) {
-                LazyColumn(modifier = Modifier.heightIn(max = 420.dp).padding(top = 8.dp)) {
-                    if (hits.isEmpty()) {
-                        item { Text("No matches.", color = colors.textLow, fontSize = 12.sp, modifier = Modifier.padding(12.dp)) }
+            Text(
+                text = "Cancel",
+                color = colors.accent,
+                fontSize = 17.sp,
+                modifier = Modifier
+                    .padding(start = 12.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { viewModel.setSearchOpen(false) }
+                    .padding(vertical = 6.dp),
+            )
+        }
+
+        if (query.trim().length >= LocalSearch.MIN_QUERY) {
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                if (hits.isEmpty()) {
+                    item {
+                        Text(
+                            "No results",
+                            color = colors.textMid,
+                            fontSize = 15.sp,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                        )
                     }
-                    items(hits, key = { it.chat.id }) { hit ->
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable {
-                                    viewModel.selectChat(hit.chat.id)
-                                    viewModel.setSearchOpen(false)
-                                }
-                                .padding(10.dp),
-                        ) {
-                            Text(hit.chat.title, color = colors.textHi, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
-                            Text(hit.snippet, color = colors.textMid, fontSize = 11.sp, maxLines = 2)
-                        }
+                }
+                items(hits, key = { it.chat.id }) { hit ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                viewModel.selectChat(hit.chat.id)
+                                viewModel.setSearchOpen(false)
+                            }
+                            .padding(horizontal = 20.dp, vertical = 11.dp),
+                    ) {
+                        Text(
+                            hit.chat.title,
+                            color = colors.textHi,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                        )
+                        Text(
+                            hit.snippet,
+                            color = colors.textMid,
+                            fontSize = 14.sp,
+                            maxLines = 2,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
                     }
                 }
             }

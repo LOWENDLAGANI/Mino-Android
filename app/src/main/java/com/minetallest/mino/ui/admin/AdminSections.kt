@@ -278,7 +278,7 @@ internal fun PeopleSection(
         }
         if (people?.isEmpty() == true) {
             Text(
-                "Nobody has registered on this device's server yet.",
+                "No people",
                 color = colors.textLow,
                 fontSize = 12.sp,
                 modifier = Modifier.padding(top = 8.dp),
@@ -311,7 +311,7 @@ internal fun ControlsSection(
     SectionCard("Runtime controls") {
         if (config == null) {
             Text(
-                "Runtime config is unreadable from this device.",
+                "Config unavailable",
                 color = LocalMinoColors.current.amber,
                 fontSize = 12.sp,
             )
@@ -422,12 +422,6 @@ internal fun CodesSection(
     }
 
     SectionCard("Redeem codes") {
-        Text(
-            "New sales are Dew top-ups (presets 25 / 100 / 500 / 1000); the legacy plan shape stays available.",
-            color = colors.textLow,
-            fontSize = 11.sp,
-            lineHeight = 15.sp,
-        )
         Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf("25", "100", "500", "1000").forEach { preset ->
                 Text(
@@ -606,12 +600,6 @@ internal fun ModelsSection(
     }
 
     SectionCard("Model health") {
-        Text(
-            "Each Test sends a real single-model request — no fallback chain, so a healthy chain can't hide one broken model.",
-            color = colors.textLow,
-            fontSize = 11.sp,
-            lineHeight = 15.sp,
-        )
         models?.forEach { model ->
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -665,11 +653,6 @@ internal fun PushSection(
     var url by remember { mutableStateOf("/") }
 
     SectionCard("Push · broadcast") {
-        Text(
-            "Sends to every persisted subscriber. The url must start with /.",
-            color = LocalMinoColors.current.textLow,
-            fontSize = 11.sp,
-        )
         Field(title, { title = it }, "Title")
         Field(body, { body = it }, "Body", singleLine = false)
         Field(url, { url = it }, "Url (starts with /)")
@@ -696,13 +679,6 @@ internal fun WipesSection(
     var uid by remember { mutableStateOf("") }
 
     SectionCard("Wipes") {
-        Text(
-            "Removes users/{uid}, admin/registry/{uid} and subscriptions/{uid} for one account. " +
-                "This cannot be undone.",
-            color = colors.danger,
-            fontSize = 11.sp,
-            lineHeight = 15.sp,
-        )
         Field(uid, { uid = it }, "uid")
         ActionButton("Wipe this account") {
             onBusy("Wiping…")
