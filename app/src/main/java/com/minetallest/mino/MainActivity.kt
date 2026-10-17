@@ -22,7 +22,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        if (savedInstanceState == null) pendingChatId = intent?.getStringExtra(EXTRA_CHAT_ID)
+        // The extra is removed once consumed, so re-reading it after a
+        // configuration change is safe and keeps process-death restores working.
+        pendingChatId = intent?.getStringExtra(EXTRA_CHAT_ID)
 
         val container = minoContainer
         setContent {

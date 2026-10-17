@@ -13,6 +13,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.minetallest.mino.MainActivity
 import com.minetallest.mino.R
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Posts the "reply ready" notification when a response finishes while Mino is
@@ -22,6 +23,7 @@ import com.minetallest.mino.R
 class ReplyNotifier(private val context: Context) {
 
     private val manager = NotificationManagerCompat.from(context)
+    private val idCounter = AtomicInteger(0)
 
     init {
         ensureChannel()
@@ -32,6 +34,9 @@ class ReplyNotifier(private val context: Context) {
         if (!canPostNotifications()) return
         ensureChannel()
 
+        // A fresh id per reply: HyperOS will not re-show a notification whose
+        // previous instance was dismissed when the same id is reused.
+        val notificationId = nextNotificationId()
         val title = context.getString(R.string.notification_ready_title)
         val text = context.getString(
             R.string.notification_ready_text,
@@ -44,7 +49,7 @@ class ReplyNotifier(private val context: Context) {
         }
         val contentIntent = PendingIntent.getActivity(
             context,
-            chatId.hashCode() and 0x7fffffff,
+            notificationId,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -73,7 +78,7 @@ class ReplyNotifier(private val context: Context) {
         }
 
         try {
-            manager.notify(chatId.hashCode() and 0x7fffffff, notification)
+            manager.notify(notificationId, notification)
         } catch (_: SecurityException) {
             // Permission was revoked between the check and the post.
         }
@@ -86,6 +91,11 @@ class ReplyNotifier(private val context: Context) {
         } catch (_: Throwable) {
             // No notification service on this device.
         }
+    }
+
+    private fun nextNotificationId(): Int {
+        val base = (System.currentTimeMillis() and 0x7fffffffL).toInt()
+        return (base + idCounter.getAndIncrement()) and 0x7fffffff
     }
 
     private fun canPostNotifications(): Boolean {
