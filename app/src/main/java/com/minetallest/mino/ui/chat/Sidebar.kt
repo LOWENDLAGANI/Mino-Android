@@ -1,10 +1,6 @@
 package com.minetallest.mino.ui.chat
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -38,7 +34,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Image
@@ -81,7 +76,6 @@ import com.minetallest.mino.domain.Rules
 import com.minetallest.mino.ui.theme.IosDivider
 import com.minetallest.mino.ui.theme.IosGroup
 import com.minetallest.mino.ui.theme.IosIconBadge
-import com.minetallest.mino.ui.theme.IosRow
 import com.minetallest.mino.ui.theme.IosSectionHeader
 import com.minetallest.mino.ui.theme.LocalMinoColors
 import com.minetallest.mino.ui.theme.MinoColors
