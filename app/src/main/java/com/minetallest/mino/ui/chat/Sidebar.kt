@@ -28,6 +28,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Campaign
@@ -141,56 +142,56 @@ fun Sidebar(viewModel: ChatViewModel, onNavigate: (String) -> Unit) {
         Spacer(Modifier.height(12.dp))
 
         IosGroup {
-            IosRow(
+            SidebarDest(
                 title = "New Chat",
                 icon = Icons.Filled.Add,
-                iconTint = colors.accent,
+                tint = colors.accent,
                 onClick = { viewModel.startNewChat() },
             )
-            IosDivider(startIndent = 57.dp)
-            IosRow(
+            IosDivider(startIndent = 48.dp)
+            SidebarDest(
                 title = "Gallery",
                 icon = Icons.Filled.Image,
-                iconTint = MinoColors.SystemPurple,
+                tint = colors.text,
                 onClick = { viewModel.setGalleryOpen(true) },
             )
-            IosDivider(startIndent = 57.dp)
-            IosRow(
+            IosDivider(startIndent = 48.dp)
+            SidebarDest(
                 title = "Trash",
                 icon = Icons.Filled.Delete,
-                iconTint = colors.danger,
+                tint = colors.text,
                 value = if (ui.trash.isNotEmpty()) ui.trash.size.toString() else null,
                 onClick = { viewModel.setTrashOpen(true) },
             )
-            IosDivider(startIndent = 57.dp)
-            IosRow(
+            IosDivider(startIndent = 48.dp)
+            SidebarDest(
                 title = "Mino Plus",
                 icon = Icons.Filled.AccountBalanceWallet,
-                iconTint = colors.accent,
+                tint = colors.text,
                 value = ui.dew?.balance?.let {
                     "%.2f".format(it).trimEnd('0').trimEnd('.')
                 } ?: "Plus",
                 onClick = { onNavigate("plus") },
             )
-            IosDivider(startIndent = 57.dp)
-            IosRow(
+            IosDivider(startIndent = 48.dp)
+            SidebarDest(
                 title = "Support",
                 icon = Icons.Filled.Favorite,
-                iconTint = Color(0xFFFF2D55),
+                tint = colors.text,
                 onClick = { onNavigate("donate") },
             )
-            IosDivider(startIndent = 57.dp)
-            IosRow(
+            IosDivider(startIndent = 48.dp)
+            SidebarDest(
                 title = "News",
                 icon = Icons.Filled.Campaign,
-                iconTint = colors.amber,
+                tint = colors.text,
                 onClick = { onNavigate("notes") },
             )
-            IosDivider(startIndent = 57.dp)
-            IosRow(
+            IosDivider(startIndent = 48.dp)
+            SidebarDest(
                 title = "About",
                 icon = Icons.Filled.Info,
-                iconTint = colors.textMid,
+                tint = colors.text,
                 chevron = true,
                 onClick = { onNavigate("about") },
             )
@@ -637,6 +638,52 @@ private fun DrawerFooter(
             contentAlignment = Alignment.Center,
         ) {
             Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = colors.textMid, modifier = Modifier.size(19.dp))
+        }
+    }
+}
+
+@Composable
+private fun SidebarDest(
+    title: String,
+    icon: ImageVector,
+    tint: Color,
+    value: String? = null,
+    chevron: Boolean = false,
+    onClick: () -> Unit,
+) {
+    val colors = LocalMinoColors.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 48.dp)
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = title,
+            color = colors.text,
+            fontSize = 17.sp,
+            modifier = Modifier.weight(1f),
+        )
+        if (value != null) {
+            Text(value, color = colors.textMid, fontSize = 17.sp)
+            Spacer(Modifier.width(6.dp))
+        }
+        if (chevron) {
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = colors.textLow,
+                modifier = Modifier.size(20.dp),
+            )
         }
     }
 }
