@@ -33,16 +33,15 @@ class MainActivity : ComponentActivity() {
                     initializer { ChatViewModel(container) }
                 },
             )
-            MinoTheme {
-                MinoRoot(
-                    viewModel = viewModel,
-                    deepLinkChatId = pendingChatId,
-                    onDeepLinkConsumed = {
-                        pendingChatId = null
-                        intent?.removeExtra(EXTRA_CHAT_ID)
-                    },
-                )
-            }
+            MinoTheme(
+                viewModel = viewModel,
+                deepLinkChatId = pendingChatId,
+                onDeepLinkConsumed = {
+                    pendingChatId = null
+                    intent?.removeExtra(EXTRA_CHAT_ID)
+                },
+                incomingShareIntent = intent.takeIf { intent?.action in listOf(Intent.ACTION_SEND, Intent.ACTION_SEND_MULTIPLE) },
+            )
         }
     }
 

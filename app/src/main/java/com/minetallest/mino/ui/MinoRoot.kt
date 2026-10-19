@@ -50,12 +50,14 @@ import kotlinx.coroutines.delay
 /**
  * Startup: prefs → maintenance → name gate → chat, with a one-shot splash on top.
  * [deepLinkChatId] comes from a reply notification tap.
+ * [incomingShareIntent] handles files/text shared from other apps.
  */
 @Composable
 fun MinoRoot(
     viewModel: ChatViewModel,
     deepLinkChatId: String? = null,
     onDeepLinkConsumed: () -> Unit = {},
+    incomingShareIntent: android.content.Intent? = null,
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val colors = LocalMinoColors.current
@@ -71,6 +73,18 @@ fun MinoRoot(
         val chatId = deepLinkChatId ?: return@LaunchedEffect
         viewModel.selectChat(chatId)
         onDeepLinkConsumed()
+    }
+
+    // Handle incoming shared content from other apps
+    LaunchedEffect(incomingShareIntent) {
+        incomingShareIntent?.let { intent ->
+            try {
+                val sharedContent = com.minetallest.mino.util.SharedContentHandler.processShareIntent(context, intent)
+                viewModel.handleIncomingShare(sharedContent)
+            } catch (e: Exception) {
+                // Silently fail - share processing is best-effort
+            }
+        }
     }
 
     // Ask once, after onboarding, so background replies can reach the user.

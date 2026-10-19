@@ -846,4 +846,106 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
 
     /** Origin used for share-as-link fragments (spec §10.10). */
     suspend fun serverOrigin(): String = container.apiClient.baseUrl()
+
+    /** Handle incoming shared content from Android share sheet. Auto-inserts into composer. */
+    fun handleIncomingShare(sharedContent: com.minetallest.mino.util.SharedContentHandler.SharedContent) {
+        viewModelScope.launch {
+            val content = sharedContent.text?.trim().orEmpty()
+            val hasAttachments = sharedContent.images.isNotEmpty() || sharedContent.documents.isNotEmpty()
+
+            if (content.isEmpty() && !hasAttachments) {
+                if (sharedContent.errorMessage != null) {
+                    notice(sharedContent.errorMessage, Notice.Tone.RED)
+                }
+                return@launch
+            }
+
+            // Build the message content with attachments
+            val attachmentText = buildString {
+                if (hasAttachments) {
+                    if (content.isNotBlank()) {
+                        append(content)
+                        append("\n\n")
+                    }
+                    sharedContent.images.forEach { image ->
+                        append("🖼️ Image: ${image.name}\n")
+                    }
+                    sharedContent.documents.forEach { doc ->
+                        append("📄 File: ${doc.name} (${formatFileSize(doc.size)})\n")
+                        if (doc.text.isNotBlank()) {
+                            append(doc.text)
+                            append("\n\n")
+                        }
+                    }
+                } else {
+                    append(content)
+                }
+            }.trim()
+
+            if (attachmentText.isEmpty()) return@launch
+
+            // Create user message with attachments
+            val now = System.currentTimeMillis()
+            val temporary = _ui.value.temporary
+            val chatId = if (temporary) {
+                null
+            } else {
+                _ui.value.activeChatId ?: repo.createChat(now).id.also { id ->
+                    _ui.update { it.copy(activeChatId = id) }
+                }
+            }
+
+            val imageAttachments = sharedContent.images.map { img ->
+                com.minetallest.mino.domain.ImageAttachment(url = img.url, name = img.name, size = img.size)
+            }
+
+            val docAttachments = sharedContent.documents.map { doc ->
+                com.minetallest.mino.domain.DocumentAttachment(
+                    name = doc.name,
+                    size = doc.size,
+                    text = doc.text,
+                    truncated = doc.truncated,
+                )
+            }
+
+            val userMessage = com.minetallest.mino.domain.ChatMessage(
+                id = com.minetallest.mino.domain.Rules.uid(),
+                chatId = chatId ?: "temporary",
+                role = com.minetallest.mino.domain.Role.USER,
+                content = content,
+                images = imageAttachments.ifEmpty { null },
+                documents = docAttachments.ifEmpty { null },
+                createdAt = now,
+            )
+
+            if (temporary) {
+                _ui.update { it.copy(temporaryMessages = it.temporaryMessages + userMessage) }
+            } else if (chatId != null) {
+                repo.appendUserMessage(chatId, userMessage, now)
+            }
+
+            // Send immediately
+            send(
+                text = content,
+                images = imageAttachments,
+                documents = docAttachments,
+                mode = _ui.value.mode,
+                searchMode = _ui.value.searchMode,
+                imageMode = false,
+            )
+
+            if (sharedContent.errorMessage != null) {
+                notice(sharedContent.errorMessage, Notice.Tone.AMBER)
+            }
+        }
+    }
+
+    private fun formatFileSize(bytes: Long): String {
+        return when {
+            bytes < 1024 -> "$bytes B"
+            bytes < 1024 * 1024 -> "${bytes / 1024} KB"
+            bytes < 1024 * 1024 * 1024 -> "${bytes / (1024 * 1024)} MB"
+            else -> "${bytes / (1024 * 1024 * 1024)} GB"
+        }
+    }
 }

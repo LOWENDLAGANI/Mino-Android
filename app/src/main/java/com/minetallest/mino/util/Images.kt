@@ -20,7 +20,7 @@ object Images {
     const val JPEG_QUALITY = 80
     const val MAX_IMAGES = 4
     const val MAX_DOCUMENTS = 3
-    const val MAX_DOCUMENT_BYTES = 100_000
+    const val MAX_DOCUMENT_BYTES = 524_288_000  // 500 MB
 
     private val docMimeTypes = setOf(
         "text/plain", "text/markdown", "text/csv", "application/json",
@@ -110,7 +110,7 @@ object Images {
             val mime = context.contentResolver.getType(uri)?.lowercase()
             val allowed = (mime != null && mime in docMimeTypes) || extension in docExtensions
             if (!allowed) {
-                return DocResult.Error("Text and code files are supported (up to 100 KB each)")
+                return DocResult.Error("Text and code files are supported (up to 500 MB each)")
             }
             val bytes = try {
                 context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: continue
@@ -118,7 +118,7 @@ object Images {
                 return DocResult.Error("Could not read $name")
             }
             if (bytes.size > MAX_DOCUMENT_BYTES) {
-                return DocResult.Error("$name is larger than 100 KB")
+                return DocResult.Error("$name is larger than 500 MB")
             }
             val text = bytes.toString(Charsets.UTF_8)
             out.add(
