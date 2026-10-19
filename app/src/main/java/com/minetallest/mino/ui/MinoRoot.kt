@@ -51,6 +51,7 @@ import kotlinx.coroutines.delay
  * Startup: prefs → maintenance → name gate → chat, with a one-shot splash on top.
  * [deepLinkChatId] comes from a reply notification tap.
  * [incomingShareIntent] handles files/text shared from other apps.
+ * [deepLinkChatId] for share-to-chat deep links.
  */
 @Composable
 fun MinoRoot(

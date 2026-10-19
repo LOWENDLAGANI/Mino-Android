@@ -105,6 +105,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         val galleryOpen: Boolean = false,
         val settingsOpen: Boolean = false,
         val newNoteIds: List<String> = emptyList(),
+        val sharePreviewOpen: Boolean = false,
     )
 
     private val _ui = MutableStateFlow(UiState(firebaseConfigured = container.firebaseConfigured))
@@ -847,96 +848,62 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
     /** Origin used for share-as-link fragments (spec §10.10). */
     suspend fun serverOrigin(): String = container.apiClient.baseUrl()
 
-    /** Handle incoming shared content from Android share sheet. Auto-inserts into composer. */
+    // ---------------------------------------------------------------- shared content (incoming)
+
+    /** Pending shared content waiting for user confirmation or chat selection */
+    private var pendingSharedContent: com.minetallest.mino.util.SharedContentHandler.SharedContent? = null
+
+    /** Show preview dialog for incoming shared content */
+    fun showSharePreview(sharedContent: com.minetallest.mino.util.SharedContentHandler.SharedContent) {
+        pendingSharedContent = sharedContent
+        _ui.update { it.copy(sharePreviewOpen = true) }
+    }
+
+    /** Dismiss the share preview dialog */
+    fun dismissSharePreview() {
+        _ui.update { it.copy(sharePreviewOpen = false) }
+        pendingSharedContent = null
+    }
+
+    /** Send the pending shared content to the current/selected chat */
+    fun sendPendingShare() {
+        val content = pendingSharedContent ?: return
+        pendingSharedContent = null
+        _ui.update { it.copy(sharePreviewOpen = false) }
+        deliverSharedContent(content, sendImmediately = true)
+    }
+
+    /** Send pending shared content to a specific chat */
+    fun sendShareToChat(chatId: String) {
+        val content = pendingSharedContent ?: return
+        pendingSharedContent = null
+        _ui.update { it.copy(sharePreviewOpen = false) }
+        viewModelScope.launch {
+            selectChat(chatId)
+            delay(100) // Give UI a moment to update
+            deliverSharedContent(content, sendImmediately = true)
+        }
+    }
+
+    /** Handle incoming shared content from Android share sheet. */
     fun handleIncomingShare(sharedContent: com.minetallest.mino.util.SharedContentHandler.SharedContent) {
         viewModelScope.launch {
-            val content = sharedContent.text?.trim().orEmpty()
             val hasAttachments = sharedContent.images.isNotEmpty() || sharedContent.documents.isNotEmpty()
+            val textLength = sharedContent.text?.length ?: 0
 
-            if (content.isEmpty() && !hasAttachments) {
-                if (sharedContent.errorMessage != null) {
-                    notice(sharedContent.errorMessage, Notice.Tone.RED)
-                }
+            if (sharedContent.errorMessage != null && !hasAttachments && textLength == 0) {
+                notice(sharedContent.errorMessage, Notice.Tone.RED)
                 return@launch
             }
 
-            // Build the message content with attachments
-            val attachmentText = buildString {
-                if (hasAttachments) {
-                    if (content.isNotBlank()) {
-                        append(content)
-                        append("\n\n")
-                    }
-                    sharedContent.images.forEach { image ->
-                        append("🖼️ Image: ${image.name}\n")
-                    }
-                    sharedContent.documents.forEach { doc ->
-                        append("📄 File: ${doc.name} (${formatFileSize(doc.size)})\n")
-                        if (doc.text.isNotBlank()) {
-                            append(doc.text)
-                            append("\n\n")
-                        }
-                    }
-                } else {
-                    append(content)
-                }
-            }.trim()
-
-            if (attachmentText.isEmpty()) return@launch
-
-            // Create user message with attachments
-            val now = System.currentTimeMillis()
-            val temporary = _ui.value.temporary
-            val chatId = if (temporary) {
-                null
-            } else {
-                _ui.value.activeChatId ?: repo.createChat(now).id.also { id ->
-                    _ui.update { it.copy(activeChatId = id) }
-                }
+            // Show preview for content with attachments or long text
+            if (hasAttachments || textLength > 200) {
+                showSharePreview(sharedContent)
+                return@launch
             }
 
-            val imageAttachments = sharedContent.images.map { img ->
-                com.minetallest.mino.domain.ImageAttachment(url = img.url, name = img.name, size = img.size)
-            }
-
-            val docAttachments = sharedContent.documents.map { doc ->
-                com.minetallest.mino.domain.DocumentAttachment(
-                    name = doc.name,
-                    size = doc.size,
-                    text = doc.text,
-                    truncated = doc.truncated,
-                )
-            }
-
-            val userMessage = com.minetallest.mino.domain.ChatMessage(
-                id = com.minetallest.mino.domain.Rules.uid(),
-                chatId = chatId ?: "temporary",
-                role = com.minetallest.mino.domain.Role.USER,
-                content = content,
-                images = imageAttachments.ifEmpty { null },
-                documents = docAttachments.ifEmpty { null },
-                createdAt = now,
-            )
-
-            if (temporary) {
-                _ui.update { it.copy(temporaryMessages = it.temporaryMessages + userMessage) }
-            } else if (chatId != null) {
-                repo.appendUserMessage(chatId, userMessage, now)
-            }
-
-            // Send immediately
-            send(
-                text = content,
-                images = imageAttachments,
-                documents = docAttachments,
-                mode = _ui.value.mode,
-                searchMode = _ui.value.searchMode,
-                imageMode = false,
-            )
-
-            if (sharedContent.errorMessage != null) {
-                notice(sharedContent.errorMessage, Notice.Tone.AMBER)
-            }
+            // For short text-only shares, send directly
+            deliverSharedContent(sharedContent, sendImmediately = true)
         }
     }
 

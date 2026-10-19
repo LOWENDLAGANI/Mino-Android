@@ -24,7 +24,30 @@ object SharedContentHandler {
         val images: List<ImageAttachment> = emptyList(),
         val documents: List<DocumentAttachment> = emptyList(),
         val errorMessage: String? = null,
-    )
+    ) {
+        /** Preview text for the share confirmation dialog */
+        fun previewText(): String {
+            val parts = mutableListOf<String>()
+            text?.takeIf { it.isNotBlank() }?.let { parts.add(it) }
+            images.forEach { parts.add("🖼️ ${it.name}") }
+            documents.forEach { doc ->
+                val fileInfo = "📄 ${doc.name} (${formatFileSize(doc.size)})"
+                parts.add(fileInfo)
+            }
+            return parts.joinToString("\n")
+        }
+
+        companion object {
+            private fun formatFileSize(bytes: Long): String {
+                return when {
+                    bytes < 1024 -> "$bytes B"
+                    bytes < 1024 * 1024 -> "${bytes / 1024} KB"
+                    bytes < 1024 * 1024 * 1024 -> "${bytes / (1024 * 1024)} MB"
+                    else -> "${bytes / (1024 * 1024 * 1024)} GB"
+                }
+            }
+        }
+    }
 
     private const val MAX_FILE_BYTES = 524_288_000L  // 500 MB
     private const val MAX_IMAGES = 4
