@@ -125,14 +125,6 @@ data class Chat(
     val createdAt: Long,
     val updatedAt: Long,
     val pinned: Boolean = false,
-    val folder: String? = null,
-)
-
-@Serializable
-data class ChatFolder(
-    val id: String,
-    val name: String,
-    val createdAt: Long,
 )
 
 @Serializable
@@ -150,7 +142,6 @@ data class TrashEntry(
     val createdAt: Long,
     val updatedAt: Long,
     val pinned: Boolean = false,
-    val folder: String? = null,
     val messages: List<ChatMessage> = emptyList(),
     val deletedAt: Long,
 )

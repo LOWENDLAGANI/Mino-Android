@@ -3,11 +3,10 @@ package com.minetallest.mino.domain
 import java.util.Locale
 import kotlin.math.abs
 
-/** Spec §7.1 derived rules: auto-title, folder names, relative times, refusal sentences. */
+/** Spec §7.1 derived rules: auto-title, relative times, refusal sentences. */
 object Rules {
 
     const val NAME_MAX = 40
-    const val FOLDER_NAME_MAX = 32
     const val TITLE_MAX = 42
 
     /** `uid()` — crypto.randomUUID with timestamp+random fallback. */
@@ -32,17 +31,6 @@ object Rules {
         val collapsed = raw.replace(Regex("\\s+"), " ").trim()
         return if (collapsed.length <= NAME_MAX) collapsed else collapsed.take(NAME_MAX)
     }
-
-    /** Folder name: collapse whitespace, max 32. Null when empty. */
-    fun normalizeFolderName(raw: String): String? {
-        val collapsed = raw.replace(Regex("\\s+"), " ").trim()
-        if (collapsed.isEmpty()) return null
-        return collapsed.take(FOLDER_NAME_MAX)
-    }
-
-    /** Case-insensitive clash → caller should reuse the existing folder (spec §7.1). */
-    fun folderNameClash(a: String, b: String): Boolean =
-        a.trim().equals(b.trim(), ignoreCase = true)
 
     /** Sidebar relative time: now · 5m · 3h · 4d · MMM d (spec §6.4). */
     fun timeAgo(now: Long, then: Long): String {

@@ -5,7 +5,6 @@ import com.minetallest.mino.data.db.Mappers.toEntity
 import com.minetallest.mino.data.db.MinoDatabase
 import com.minetallest.mino.domain.Backup
 import com.minetallest.mino.domain.Chat
-import com.minetallest.mino.domain.ChatFolder
 import com.minetallest.mino.domain.ChatMessage
 import com.minetallest.mino.domain.Memory
 import com.minetallest.mino.domain.Rules
@@ -16,7 +15,7 @@ import kotlinx.coroutines.flow.map
 
 /**
  * Dexie-equivalent repository (spec §7.1 behavioural rules):
- * auto-title, transactional delete → trash, folder re-filing, variant retirement,
+ * auto-title, transactional delete → trash, variant retirement,
  * backup/restore bounds, 30-day trash purge on start.
  */
 class ChatRepository(private val db: MinoDatabase) {
@@ -28,7 +27,6 @@ class ChatRepository(private val db: MinoDatabase) {
             list.sortedWith(compareByDescending<Chat> { it.pinned }.thenByDescending { it.updatedAt })
         }
 
-    val folders: Flow<List<ChatFolder>> = db.folderDao().observeAll().map { it.map { f -> f.toDomain() } }
     val memories: Flow<List<Memory>> = db.memoryDao().observeAll().map { it.map { m -> m.toDomain() } }
     val trash: Flow<List<TrashEntry>> = db.trashDao().observeAll().map { it.map { t -> t.toDomain() } }
 
@@ -60,32 +58,6 @@ class ChatRepository(private val db: MinoDatabase) {
     }
 
     suspend fun setPinned(chatId: String, pinned: Boolean) = db.chatDao().setPinned(chatId, pinned)
-
-    suspend fun setFolder(chatId: String, folderId: String?) = db.chatDao().setFolder(chatId, folderId)
-
-    /** Filing a chat does not touch updatedAt (spec §7.1). */
-    suspend fun createFolder(name: String, now: Long): ChatFolder? {
-        val normalized = Rules.normalizeFolderName(name) ?: return null
-        val existing = db.folderDao().all()
-        existing.firstOrNull { Rules.folderNameClash(it.name, normalized) }?.let { return it.toDomain() }
-        val folder = ChatFolder(id = Rules.uid(), name = normalized, createdAt = now)
-        db.folderDao().upsert(folder.toEntity())
-        return folder
-    }
-
-    /** Deleting a folder returns its chats to unfiled and never deletes them (spec #33). */
-    suspend fun deleteFolder(folderId: String) {
-        db.chatDao().unfileFolder(folderId)
-        db.folderDao().delete(folderId)
-    }
-
-    suspend fun renameFolder(folderId: String, newName: String) {
-        val normalized = Rules.normalizeFolderName(newName) ?: return
-        val existing = db.folderDao().all()
-        if (existing.any { it.id != folderId && Rules.folderNameClash(it.name, normalized) }) return
-        val entity = existing.firstOrNull { it.id == folderId } ?: return
-        db.folderDao().upsert(entity.copy(name = normalized))
-    }
 
     /** Insert or replace a message row verbatim (streaming updates, variant moves). */
     suspend fun putMessage(message: ChatMessage) = db.messageDao().upsert(message.toEntity())
@@ -131,7 +103,7 @@ class ChatRepository(private val db: MinoDatabase) {
         val stored = db.trashDao().byId(chatId) ?: return null
         val entry = stored.toDomain()
         db.chatDao().upsert(
-            Chat(entry.id, entry.title, entry.createdAt, entry.updatedAt, entry.pinned, entry.folder).toEntity(),
+            Chat(entry.id, entry.title, entry.createdAt, entry.updatedAt, entry.pinned).toEntity(),
         )
         entry.messages.forEach { db.messageDao().upsert(it.toEntity()) }
         db.trashDao().delete(chatId)
@@ -170,7 +142,6 @@ class ChatRepository(private val db: MinoDatabase) {
     suspend fun wipeAll() {
         db.messageDao().clear()
         db.chatDao().clear()
-        db.folderDao().clear()
         db.trashDao().clear()
         db.memoryDao().clear()
     }

@@ -5,14 +5,13 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /** Spec §7.1 — the Dexie tables, mapped to SQLite. */
-@Entity(tableName = "chats", indices = [Index("updatedAt"), Index("pinned"), Index("folder")])
+@Entity(tableName = "chats", indices = [Index("updatedAt"), Index("pinned")])
 data class ChatEntity(
     @PrimaryKey val id: String,
     val title: String,
     val createdAt: Long,
     val updatedAt: Long,
     val pinned: Boolean,
-    val folder: String?,
 )
 
 @Entity(tableName = "messages", indices = [Index("chatId"), Index("createdAt")])
@@ -45,13 +44,6 @@ data class MemoryEntity(
     val updatedAt: Long,
 )
 
-@Entity(tableName = "folders", indices = [Index("name")])
-data class FolderEntity(
-    @PrimaryKey val id: String,
-    val name: String,
-    val createdAt: Long,
-)
-
 @Entity(tableName = "trash", indices = [Index("deletedAt")])
 data class TrashEntity(
     @PrimaryKey val id: String,
@@ -59,7 +51,6 @@ data class TrashEntity(
     val createdAt: Long,
     val updatedAt: Long,
     val pinned: Boolean,
-    val folder: String?,
     val messages: String,
     val deletedAt: Long,
 )

@@ -452,6 +452,14 @@ private fun AssistantMessage(viewModel: ChatViewModel, message: ChatMessage) {
                     onStep = { viewModel.setVariant(message.id, it) },
                 )
             }
+            if (message.pinned) {
+                Icon(
+                    Icons.Filled.PushPin,
+                    contentDescription = "Pinned",
+                    tint = colors.accent,
+                    modifier = Modifier.size(12.dp),
+                )
+            }
         }
 
         if (message.generatedImages.isNullOrEmpty() && shown.isNotBlank()) {

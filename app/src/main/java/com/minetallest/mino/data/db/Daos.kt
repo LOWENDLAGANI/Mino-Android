@@ -27,12 +27,6 @@ interface ChatDao {
     @Query("UPDATE chats SET pinned = :pinned WHERE id = :id")
     suspend fun setPinned(id: String, pinned: Boolean)
 
-    @Query("UPDATE chats SET folder = :folder WHERE id = :id")
-    suspend fun setFolder(id: String, folder: String?)
-
-    @Query("UPDATE chats SET folder = NULL WHERE folder = :folderId")
-    suspend fun unfileFolder(folderId: String)
-
     @Query("UPDATE chats SET updatedAt = :updatedAt WHERE id = :id")
     suspend fun touch(id: String, updatedAt: Long)
 
@@ -91,24 +85,6 @@ interface MemoryDao {
     suspend fun delete(id: String)
 
     @Query("DELETE FROM memories")
-    suspend fun clear()
-}
-
-@Dao
-interface FolderDao {
-    @Query("SELECT * FROM folders ORDER BY createdAt ASC")
-    fun observeAll(): Flow<List<FolderEntity>>
-
-    @Query("SELECT * FROM folders")
-    suspend fun all(): List<FolderEntity>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(folder: FolderEntity)
-
-    @Query("DELETE FROM folders WHERE id = :id")
-    suspend fun delete(id: String)
-
-    @Query("DELETE FROM folders")
     suspend fun clear()
 }
 

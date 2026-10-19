@@ -11,7 +11,6 @@ import androidx.room.RoomDatabase
         ChatEntity::class,
         MessageEntity::class,
         MemoryEntity::class,
-        FolderEntity::class,
         TrashEntity::class,
     ],
     version = 5,
@@ -21,7 +20,6 @@ abstract class MinoDatabase : RoomDatabase() {
     abstract fun chatDao(): ChatDao
     abstract fun messageDao(): MessageDao
     abstract fun memoryDao(): MemoryDao
-    abstract fun folderDao(): FolderDao
     abstract fun trashDao(): TrashDao
 
     companion object {

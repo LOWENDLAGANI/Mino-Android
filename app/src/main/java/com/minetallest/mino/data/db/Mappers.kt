@@ -1,7 +1,6 @@
 package com.minetallest.mino.data.db
 
 import com.minetallest.mino.domain.Chat
-import com.minetallest.mino.domain.ChatFolder
 import com.minetallest.mino.domain.ChatMessage
 import com.minetallest.mino.domain.DocumentAttachment
 import com.minetallest.mino.domain.GeneratedImage
@@ -44,8 +43,8 @@ object Mappers {
     fun encodeMessages(v: List<ChatMessage>) = json.encodeToString(messageList, v)
     fun decodeMessages(s: String) = json.decodeFromString(messageList, s)
 
-    fun ChatEntity.toDomain() = Chat(id, title, createdAt, updatedAt, pinned, folder)
-    fun Chat.toEntity() = ChatEntity(id, title, createdAt, updatedAt, pinned, folder)
+    fun ChatEntity.toDomain() = Chat(id, title, createdAt, updatedAt, pinned)
+    fun Chat.toEntity() = ChatEntity(id, title, createdAt, updatedAt, pinned)
 
     fun MessageEntity.toDomain() = ChatMessage(
         id = id,
@@ -91,8 +90,6 @@ object Mappers {
 
     fun MemoryEntity.toDomain() = Memory(id, text, createdAt, updatedAt)
     fun Memory.toEntity() = MemoryEntity(id, text, createdAt, updatedAt)
-    fun FolderEntity.toDomain() = ChatFolder(id, name, createdAt)
-    fun ChatFolder.toEntity() = FolderEntity(id, name, createdAt)
 
     fun TrashEntity.toDomain() = TrashEntry(
         id = id,
@@ -100,7 +97,6 @@ object Mappers {
         createdAt = createdAt,
         updatedAt = updatedAt,
         pinned = pinned,
-        folder = folder,
         messages = decodeMessages(messages),
         deletedAt = deletedAt,
     )
@@ -111,7 +107,6 @@ object Mappers {
         createdAt = createdAt,
         updatedAt = updatedAt,
         pinned = pinned,
-        folder = folder,
         messages = encodeMessages(messages),
         deletedAt = deletedAt,
     )

@@ -7,7 +7,6 @@ import com.minetallest.mino.AppContainer
 import com.minetallest.mino.data.ChatRepository
 import com.minetallest.mino.domain.Chat
 import com.minetallest.mino.domain.ChatEvent
-import com.minetallest.mino.domain.ChatFolder
 import com.minetallest.mino.domain.ChatMessage
 import com.minetallest.mino.domain.DocumentAttachment
 import com.minetallest.mino.domain.GeneratedImage
@@ -79,7 +78,6 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         val reasoningEffort: ReasoningEffort = ReasoningEffort.LOW,
         val memorySuggestEnabled: Boolean = true,
         val chats: List<Chat> = emptyList(),
-        val folders: List<ChatFolder> = emptyList(),
         val memories: List<Memory> = emptyList(),
         val trash: List<TrashEntry> = emptyList(),
         val activeChatId: String? = null,
@@ -127,7 +125,6 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
 
     private fun observeEverything() {
         viewModelScope.launch { repo.chats.collect { list -> _ui.update { it.copy(chats = list) } } }
-        viewModelScope.launch { repo.folders.collect { list -> _ui.update { it.copy(folders = list) } } }
         viewModelScope.launch { repo.memories.collect { list -> _ui.update { it.copy(memories = list) } } }
         viewModelScope.launch { repo.trash.collect { list -> _ui.update { it.copy(trash = list) } } }
         viewModelScope.launch { prefs.selectedMode.collect { v -> _ui.update { it.copy(mode = v) } } }
@@ -321,22 +318,6 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
     fun togglePin(chatId: String, pinned: Boolean) = viewModelScope.launch { repo.setPinned(chatId, pinned) }
 
     fun renameChat(chatId: String, title: String) = viewModelScope.launch { repo.rename(chatId, title) }
-
-    fun moveChatToFolder(chatId: String, folderId: String?) =
-        viewModelScope.launch { repo.setFolder(chatId, folderId) }
-
-    fun createFolder(name: String, fileChatId: String? = null) {
-        viewModelScope.launch {
-            val folder = repo.createFolder(name, System.currentTimeMillis()) ?: return@launch
-            if (fileChatId != null) repo.setFolder(fileChatId, folder.id)
-        }
-    }
-
-    fun deleteFolder(folderId: String) = viewModelScope.launch { repo.deleteFolder(folderId) }
-
-    fun renameFolder(folderId: String, name: String) = viewModelScope.launch {
-        repo.renameFolder(folderId, name)
-    }
 
     // ---------------------------------------------------------------- sending
 
