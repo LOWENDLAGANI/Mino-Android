@@ -64,6 +64,7 @@ fun MinoRoot(
     val colors = LocalMinoColors.current
     val view = LocalView.current
     val context = LocalContext.current
+    val effectiveDark = if (ui.darkTheme) true else colors.isDark
 
     val notificationPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -100,26 +101,20 @@ fun MinoRoot(
         }
     }
 
-    SideEffect {
-        val window = (view.context as? android.app.Activity)?.window ?: return@SideEffect
-        window.statusBarColor = Color.Transparent.toArgb()
-        window.navigationBarColor = Color.Transparent.toArgb()
-        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = colors.lightStatusBar
-        WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = colors.lightStatusBar
-    }
-
-    androidx.compose.material3.Surface(modifier = Modifier.fillMaxSize(), color = colors.background) {
-        when {
-            !ui.hydrated -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = colors.accent, strokeWidth = 2.dp)
+    MinoTheme(darkTheme = ui.darkTheme) {
+        androidx.compose.material3.Surface(modifier = Modifier.fillMaxSize(), color = colors.background) {
+            when {
+                !ui.hydrated -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = colors.accent, strokeWidth = 2.dp)
+                }
+                ui.maintenanceMessage != null -> MaintenanceScreen(message = ui.maintenanceMessage!!)
+                ui.displayName == null -> NamePromptScreen(viewModel)
+                else -> ChatScreen(viewModel)
             }
-            ui.maintenanceMessage != null -> MaintenanceScreen(message = ui.maintenanceMessage!!)
-            ui.displayName == null -> NamePromptScreen(viewModel)
-            else -> ChatScreen(viewModel)
-        }
 
-        if (!ui.splashDone) {
-            SplashScreen(onFinished = { viewModel.finishSplash() })
+            if (!ui.splashDone) {
+                SplashScreen(onFinished = { viewModel.finishSplash() })
+            }
         }
     }
 }

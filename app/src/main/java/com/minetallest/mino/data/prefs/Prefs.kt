@@ -37,6 +37,7 @@ class Prefs(private val context: Context) {
         const val SEARCH_MODE = "mino:search-mode"
         const val API_BASE = "mino:api-base"
         const val DEW_TRIAL = "mino:dew-trial"
+        const val DARK_THEME = "mino:dark-theme"
     }
 
     private val ds = context.dataStore
@@ -103,6 +104,12 @@ class Prefs(private val context: Context) {
 
     suspend fun setDewTrialClaimed() {
         ds.edit { it[booleanPreferencesKey(Keys.DEW_TRIAL)] = true }
+    }
+
+    val darkTheme: Flow<Boolean> = ds.data.map { it[booleanPreferencesKey(Keys.DARK_THEME)] ?: false }
+
+    suspend fun setDarkTheme(enabled: Boolean) {
+        ds.edit { it[booleanPreferencesKey(Keys.DARK_THEME)] = enabled }
     }
 
     suspend fun setApiBase(value: String) {

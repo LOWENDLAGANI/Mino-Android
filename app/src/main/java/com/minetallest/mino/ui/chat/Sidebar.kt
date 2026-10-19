@@ -49,8 +49,10 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.PullToRefreshBox
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -232,7 +234,17 @@ fun Sidebar(viewModel: ChatViewModel, onNavigate: (String) -> Unit) {
         val pinned = visibleChats.filter { it.pinned }
         val others = visibleChats.filterNot { it.pinned }
 
-        LazyColumn(modifier = Modifier.weight(1f)) {
+        val pullRefreshState = rememberPullToRefreshState()
+
+        PullToRefreshBox(
+            isRefreshing = pullRefreshState.isRefreshing,
+            onRefresh = {
+                viewModel.refreshServerState()
+                pullRefreshState.endRefresh()
+            },
+            modifier = Modifier.weight(1f),
+        ) {
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
             if (pinned.isNotEmpty()) {
                 item { IosSectionHeader("Pinned") }
                 items(pinned, key = { it.id }) { chat ->
@@ -300,6 +312,7 @@ fun Sidebar(viewModel: ChatViewModel, onNavigate: (String) -> Unit) {
                 )
             }
             item { Spacer(Modifier.height(8.dp)) }
+        }
         }
 
         DrawerFooter(

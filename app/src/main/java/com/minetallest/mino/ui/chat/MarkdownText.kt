@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.minetallest.mino.ui.chat.highlightCode
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.clickable
 import com.minetallest.mino.domain.Markdown
@@ -184,8 +185,12 @@ private fun CodeBlock(lang: String?, code: String, closed: Boolean) {
             )
         }
         Text(
-            text = code + if (!closed) "▍" else "",
-            color = colors.text,
+            text = buildAnnotatedString {
+                highlightCode(code, lang).forEach { (text, color) ->
+                    withStyle(SpanStyle(color = color)) { append(text) }
+                }
+                if (!closed) append("▍")
+            },
             fontSize = 13.sp,
             lineHeight = 19.sp,
             fontFamily = FontFamily.Monospace,

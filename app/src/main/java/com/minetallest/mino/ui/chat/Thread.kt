@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,9 +34,13 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -85,8 +90,21 @@ fun Thread(viewModel: ChatViewModel) {
         return
     }
 
-    LaunchedEffect(messages.size, ui.streaming) {
-        if (ui.streaming || messages.isNotEmpty()) {
+    // Auto-scroll to new messages only when user is near the bottom.
+    var userNearBottom by remember { mutableStateOf(true) }
+
+    LaunchedEffect(listState) {
+        while (true) {
+            delay(150)
+            val layoutInfo = listState.layoutInfo
+            val totalItems = layoutInfo.totalItemsCount
+            val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            userNearBottom = lastVisibleItem >= totalItems - 6
+        }
+    }
+
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty() && userNearBottom) {
             val index = messages.indices.lastOrNull { messages[it].role == Role.ASSISTANT } ?: messages.lastIndex
             if (index >= 0) listState.animateScrollToItem(index + 1)
         }
@@ -375,11 +393,21 @@ private fun AssistantMessage(viewModel: ChatViewModel, message: ChatMessage) {
         speaking = tts.speakingMessageId == message.id
     }
 
-    Column(
+    var menuOpen by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .combinedClickable(
+                onClick = {},
+                onLongClick = { menuOpen = true },
+            ),
     ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+        ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 5.dp)) {
             Image(
                 painter = painterResource(R.drawable.mino_logo),
@@ -498,6 +526,61 @@ private fun AssistantMessage(viewModel: ChatViewModel, message: ChatMessage) {
         // Skeleton loader while streaming
         if (streamingThis && text.isEmpty()) {
             SkeletonBubble()
+        }
+
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            DropdownMenuItem(
+                text = { Text("Copy", color = colors.text) },
+                onClick = {
+                    val ok = Share.copyToClipboard(context, "Mino answer", text)
+                    copied = ok
+                    menuOpen = false
+                },
+                leadingIcon = {
+                    Icon(
+                        if (copied) Icons.Filled.Check else Icons.Filled.ContentCopy,
+                        contentDescription = null,
+                        tint = if (copied) colors.accent else colors.textMid,
+                        modifier = Modifier.size(18.dp),
+                    )
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Retry", color = colors.text) },
+                onClick = { viewModel.retry(message.id); menuOpen = false },
+                leadingIcon = {
+                    Icon(Icons.Filled.Refresh, contentDescription = null, tint = colors.textMid, modifier = Modifier.size(18.dp))
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Share", color = colors.text) },
+                onClick = {
+                    scope.launch {
+                        val origin = viewModel.serverOrigin()
+                        val link = Share.shareLink(origin, title = "Mino chat", messages = listOf(message))
+                        if (link == null) {
+                            viewModel.notice("Set a server in Settings", ChatViewModel.Notice.Tone.AMBER)
+                        } else {
+                            Share.copyToClipboard(context, "Mino link", link)
+                            Share.shareText(context, link)
+                        }
+                    }
+                    menuOpen = false
+                },
+                leadingIcon = {
+                    Icon(Icons.Filled.Share, contentDescription = null, tint = colors.textMid, modifier = Modifier.size(18.dp))
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Delete", color = colors.danger) },
+                onClick = {
+                    viewModel.deleteMessage(message.id)
+                    menuOpen = false
+                },
+                leadingIcon = {
+                    Icon(Icons.Filled.Delete, contentDescription = null, tint = colors.danger, modifier = Modifier.size(18.dp))
+                },
+            )
         }
     }
 }
@@ -647,6 +730,13 @@ private fun GeneratedImageCard(generated: com.minetallest.mino.domain.GeneratedI
 @Composable
 private fun WaitingRow() {
     val colors = LocalMinoColors.current
+    var dotCount by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(400)
+            dotCount = (dotCount + 1) % 4
+        }
+    }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -657,7 +747,7 @@ private fun WaitingRow() {
             modifier = Modifier.size(14.dp),
         )
         Text(
-            text = "Mino",
+            text = "Mino is thinking${".".repeat(dotCount)}",
             color = colors.textMid,
             fontSize = 13.sp,
             modifier = Modifier.padding(start = 8.dp),

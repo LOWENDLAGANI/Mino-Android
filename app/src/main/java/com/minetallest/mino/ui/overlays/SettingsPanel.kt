@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -78,6 +79,7 @@ fun SettingsScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
     var showSearchDialog by remember { mutableStateOf(false) }
     var showLengthDialog by remember { mutableStateOf(false) }
     var showReasoningDialog by remember { mutableStateOf(false) }
+    var showThemeDialog by remember { mutableStateOf(false) }
     var showEraseConfirmDialog by remember { mutableStateOf(false) }
 
     val exportLauncher = rememberLauncherForActivityResult(
@@ -198,6 +200,15 @@ fun SettingsScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
                     },
                     chevron = true,
                     onClick = { showReasoningDialog = true },
+                )
+                IosDivider(startIndent = 57.dp)
+                IosRow(
+                    title = "Dark Theme",
+                    icon = Icons.Filled.DarkMode,
+                    iconTint = colors.mint,
+                    value = if (ui.darkTheme) "On" else "Off",
+                    chevron = true,
+                    onClick = { showThemeDialog = true },
                 )
             }
 
@@ -350,6 +361,19 @@ fun SettingsScreen(viewModel: ChatViewModel, onBack: () -> Unit) {
             },
             containerColor = colors.bgRaised,
             shape = RoundedCornerShape(14.dp),
+        )
+    }
+
+    if (showThemeDialog) {
+        OptionSelectionDialog(
+            title = "Dark Theme",
+            options = listOf(
+                false to "Light",
+                true to "Dark",
+            ),
+            selected = ui.darkTheme,
+            onSelect = { viewModel.setDarkTheme(it); showThemeDialog = false },
+            onDismiss = { showThemeDialog = false },
         )
     }
 }

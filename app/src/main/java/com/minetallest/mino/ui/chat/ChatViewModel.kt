@@ -100,6 +100,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         val rememberDialogOpen: Boolean = false,
         val memorySuggestion: List<String> = emptyList(),
         val drawerOpen: Boolean = false,
+        val darkTheme: Boolean = false,
         val searchOpen: Boolean = false,
         val trashOpen: Boolean = false,
         val galleryOpen: Boolean = false,
@@ -131,6 +132,7 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         viewModelScope.launch { repo.trash.collect { list -> _ui.update { it.copy(trash = list) } } }
         viewModelScope.launch { prefs.selectedMode.collect { v -> _ui.update { it.copy(mode = v) } } }
         viewModelScope.launch { prefs.searchMode.collect { v -> _ui.update { it.copy(searchMode = v) } } }
+        viewModelScope.launch { prefs.darkTheme.collect { v -> _ui.update { it.copy(darkTheme = v) } } }
         viewModelScope.launch { prefs.responseLength.collect { v -> _ui.update { it.copy(responseLength = v) } } }
         viewModelScope.launch { prefs.reasoningEffort.collect { v -> _ui.update { it.copy(reasoningEffort = v) } } }
         viewModelScope.launch { prefs.memorySuggest.collect { v -> _ui.update { it.copy(memorySuggestEnabled = v) } } }
@@ -235,6 +237,8 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
     fun setGalleryOpen(open: Boolean) = _ui.update { it.copy(galleryOpen = open) }
     fun setSettingsOpen(open: Boolean) = _ui.update { it.copy(settingsOpen = open) }
     fun setRememberDialog(open: Boolean) = _ui.update { it.copy(rememberDialogOpen = open) }
+
+    fun setDarkTheme(enabled: Boolean) = viewModelScope.launch { prefs.setDarkTheme(enabled) }
     fun dismissMemorySuggestion() = _ui.update { it.copy(memorySuggestion = emptyList()) }
 
     fun notice(text: String, tone: Notice.Tone = Notice.Tone.NEUTRAL) {
@@ -454,6 +458,14 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
             _ui.update { it.copy(temporaryMessages = it.temporaryMessages.filterNot { m -> m.id == messageId }) }
         } else {
             repo.deleteMessage(messageId)
+        }
+    }
+
+    /** Delete a single assistant message (spec §9.1). */
+    fun deleteMessage(messageId: String) {
+        viewModelScope.launch {
+            stopStream()
+            removeAssistant(messageId)
         }
     }
 
