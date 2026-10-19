@@ -45,6 +45,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -491,6 +493,48 @@ private fun AssistantMessage(viewModel: ChatViewModel, message: ChatMessage) {
                     }
                 }
             }
+        }
+
+        // Skeleton loader while streaming
+        if (streamingThis && text.isEmpty()) {
+            SkeletonBubble()
+        }
+    }
+}
+
+@Composable
+private fun SkeletonBubble() {
+    val colors = LocalMinoColors.current
+    val infiniteTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "skeleton")
+    val shimmerAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.7f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = androidx.compose.animation.core.tween(800, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+        ),
+        label = "shimmer",
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 27.dp, top = 4.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        repeat(3) { row ->
+            val height = when (row) {
+                0 -> 14
+                1 -> 14
+                else -> 14
+            }
+            Box(
+                modifier = Modifier
+                    .height(height.dp)
+                    .widthIn(max = when (row) { 0 -> 280; 1 -> 240; else -> 200 })
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(colors.fill.copy(alpha = shimmerAlpha.value))
+                    .padding(vertical = 2.dp),
+            )
         }
     }
 }

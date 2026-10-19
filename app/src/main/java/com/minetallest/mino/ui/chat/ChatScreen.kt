@@ -59,6 +59,7 @@ import com.minetallest.mino.ui.theme.IosDivider
 import com.minetallest.mino.ui.theme.IosGroup
 import com.minetallest.mino.ui.theme.IosNavBar
 import com.minetallest.mino.ui.theme.LocalMinoColors
+import com.minetallest.mino.util.Haptics
 import com.minetallest.mino.util.SharedContentHandler
 
 /** Main shell: sidebar drawer · header · banners · thread · composer · overlays. */
@@ -220,12 +221,9 @@ private fun SharePreviewSheet(viewModel: ChatViewModel, onDismiss: () -> Unit) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    // Get the pending shared content from the viewModel
-    val pendingContent = (viewModel as? ChatViewModel)?.let { vm ->
-        // Access the pending content through reflection-like approach
-        // We'll use the ui state to determine what to show
-        null
-    }
+    val pendingContent = viewModel.getPendingSharedContent()
+    val previewText = pendingContent?.previewText() ?: "",
+    val hasAttachments = pendingContent?.images.isNotEmpty() == true || pendingContent?.documents.isNotEmpty() == true
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -261,6 +259,21 @@ private fun SharePreviewSheet(viewModel: ChatViewModel, onDismiss: () -> Unit) {
             IosDivider()
 
             Spacer(Modifier.height(16.dp))
+
+            // Preview of shared content
+            if (previewText.isNotBlank()) {
+                Text(
+                    text = previewText,
+                    color = colors.text,
+                    fontSize = 14.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(colors.fill)
+                        .padding(12.dp),
+                )
+                Spacer(Modifier.height(12.dp))
+            }
 
             // Chat selection
             Text(
@@ -341,7 +354,10 @@ private fun ChatSelectionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .clickable { onClick() }
+            .clickable {
+                Haptics.selection(LocalContext.current)
+                onClick()
+            }
             .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

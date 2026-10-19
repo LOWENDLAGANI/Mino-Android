@@ -8,6 +8,8 @@ import android.net.Uri
 import android.util.Base64
 import com.minetallest.mino.domain.DocumentAttachment
 import com.minetallest.mino.domain.ImageAttachment
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 
 /**
@@ -29,34 +31,37 @@ object Images {
     )
     private val docExtensions = setOf("txt", "md", "csv", "json", "js", "jsx", "ts", "tsx", "py", "html", "css", "sql")
 
-    fun compressToDataUrl(context: Context, uri: Uri): ImageAttachment? {
-        return try {
-            val bitmap: Bitmap = if (android.os.Build.VERSION.SDK_INT >= 28) {
-                val source = ImageDecoder.createSource(context.contentResolver, uri)
-                ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
-                    val scale = MAX_SIDE.toFloat() / maxOf(info.size.width, info.size.height).toFloat()
-                    if (scale < 1f) {
-                        decoder.setTargetSize(
-                            (info.size.width * scale).toInt().coerceAtLeast(1),
-                            (info.size.height * scale).toInt().coerceAtLeast(1),
-                        )
-                    }
-                }.copy(Bitmap.Config.ARGB_8888, false)
-            } else {
-                decodeScaled(context, uri) ?: return null
+    /** Compress image on IO thread to avoid blocking the main thread. */
+    suspend fun compressToDataUrl(context: Context, uri: Uri): ImageAttachment? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val bitmap: Bitmap = if (android.os.Build.VERSION.SDK_INT >= 28) {
+                    val source = ImageDecoder.createSource(context.contentResolver, uri)
+                    ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+                        val scale = MAX_SIDE.toFloat() / maxOf(info.size.width, info.size.height).toFloat()
+                        if (scale < 1f) {
+                            decoder.setTargetSize(
+                                (info.size.width * scale).toInt().coerceAtLeast(1),
+                                (info.size.height * scale).toInt().coerceAtLeast(1),
+                            )
+                        }
+                    }.copy(Bitmap.Config.ARGB_8888, false)
+                } else {
+                    decodeScaled(context, uri) ?: return@withContext null
+                }
+                val output = ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, output)
+                if (!bitmap.isRecycled) bitmap.recycle()
+                val bytes = output.toByteArray()
+                val name = queryDisplayName(context, uri) ?: "image.jpg"
+                ImageAttachment(
+                    url = "data:image/jpeg;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP),
+                    name = name,
+                    size = bytes.size.toLong(),
+                )
+            } catch (e: Throwable) {
+                null
             }
-            val output = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, output)
-            if (!bitmap.isRecycled) bitmap.recycle()
-            val bytes = output.toByteArray()
-            val name = queryDisplayName(context, uri) ?: "image.jpg"
-            ImageAttachment(
-                url = "data:image/jpeg;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP),
-                name = name,
-                size = bytes.size.toLong(),
-            )
-        } catch (e: Throwable) {
-            null
         }
     }
 
@@ -98,8 +103,9 @@ object Images {
         data class Error(val message: String) : DocResult()
     }
 
-    /** Reads text/code documents with the spec's size/type limits. */
-    fun readDocuments(context: Context, uris: List<Uri>, alreadyHave: Int): DocResult {
+    /** Reads text/code documents on IO thread to avoid blocking the main thread. */
+    suspend fun readDocuments(context: Context, uris: List<Uri>, alreadyHave: Int): DocResult {
+        return withContext(Dispatchers.IO) {
         val out = ArrayList<DocumentAttachment>()
         for (uri in uris) {
             if (out.size + alreadyHave >= MAX_DOCUMENTS) {
@@ -131,5 +137,6 @@ object Images {
             )
         }
         return DocResult.Ok(out)
+        }
     }
 }

@@ -684,7 +684,9 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
                 return@launch
             }
             _composer.update { it.copy(compressing = true) }
-            val added = uris.take(room).mapNotNull { uri -> Images.compressToDataUrl(appContext, uri) }
+            val added = withContext(Dispatchers.IO) {
+                uris.take(room).mapNotNull { uri -> Images.compressToDataUrl(appContext, uri) }
+            }
             if (added.size < uris.size) setAttachmentError("Max ${Images.MAX_IMAGES} images per message")
             _composer.update { it.copy(images = it.images + added, compressing = false) }
         }
@@ -693,7 +695,9 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
     fun addDocuments(uris: List<Uri>) {
         val appContext = container.appContext
         viewModelScope.launch {
-            when (val result = Images.readDocuments(appContext, uris, _composer.value.documents.size)) {
+            when (val result = withContext(Dispatchers.IO) {
+                Images.readDocuments(appContext, uris, _composer.value.documents.size)
+            }) {
                 is Images.DocResult.Ok ->
                     _composer.update { it.copy(documents = it.documents + result.documents, attachmentError = null) }
                 is Images.DocResult.Error -> setAttachmentError(result.message)
@@ -852,6 +856,9 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
 
     /** Pending shared content waiting for user confirmation or chat selection */
     private var pendingSharedContent: com.minetallest.mino.util.SharedContentHandler.SharedContent? = null
+
+    /** Get the current pending shared content (for UI preview) */
+    fun getPendingSharedContent(): com.minetallest.mino.util.SharedContentHandler.SharedContent? = pendingSharedContent
 
     /** Show preview dialog for incoming shared content */
     fun showSharePreview(sharedContent: com.minetallest.mino.util.SharedContentHandler.SharedContent) {

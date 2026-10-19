@@ -83,6 +83,7 @@ import com.minetallest.mino.ui.theme.IosDivider
 import com.minetallest.mino.ui.theme.IosIconBadge
 import com.minetallest.mino.ui.theme.LocalMinoColors
 import com.minetallest.mino.ui.theme.MinoColors
+import com.minetallest.mino.util.Haptics
 import com.minetallest.mino.util.VoiceInput
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -336,6 +337,7 @@ fun Composer(viewModel: ChatViewModel, onNavigate: ((String) -> Unit)? = null) {
                             },
                         )
                         .clickable(enabled = ui.streaming || canSend) {
+                            Haptics.medium(LocalContext.current)
                             if (ui.streaming) viewModel.stopStream() else viewModel.sendFromComposer()
                         },
                     contentAlignment = Alignment.Center,
