@@ -69,6 +69,9 @@ interface MessageDao {
     @Query("DELETE FROM messages WHERE id = :id")
     suspend fun delete(id: String)
 
+    @Query("UPDATE messages SET pinned = :pinned WHERE id = :id")
+    suspend fun setPinned(id: String, pinned: Boolean)
+
     @Query("DELETE FROM messages")
     suspend fun clear()
 }

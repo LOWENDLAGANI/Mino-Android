@@ -469,6 +469,25 @@ class ChatViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 
+    /** Toggle pin on a single assistant message. */
+    fun toggleMessagePin(messageId: String) {
+        viewModelScope.launch {
+            val message = currentMessages().firstOrNull { it.id == messageId } ?: return@launch
+            val next = !message.pinned
+            if (_ui.value.temporary) {
+                _ui.update { state ->
+                    state.copy(
+                        temporaryMessages = state.temporaryMessages.map {
+                            if (it.id == messageId) it.copy(pinned = next) else it
+                        }
+                    )
+                }
+            } else {
+                repo.setMessagePinned(messageId, next)
+            }
+        }
+    }
+
     /** SSE streaming with model firewall, variants, truncation and rate-limit parsing (spec §9.1). */
     private suspend fun streamReply(
         chatId: String?,

@@ -92,6 +92,8 @@ class ChatRepository(private val db: MinoDatabase) {
 
     suspend fun deleteMessage(id: String) = db.messageDao().delete(id)
 
+    suspend fun setMessagePinned(id: String, pinned: Boolean) = db.messageDao().setPinned(id, pinned)
+
     /** Auto-title from the first user message, only while the title is still "New chat". */
     suspend fun appendUserMessage(chatId: String, message: ChatMessage, now: Long) {
         db.messageDao().upsert(message.toEntity())

@@ -34,6 +34,7 @@ data class MessageEntity(
     val sources: String?,
     val usage: String?,
     val variants: String?,
+    val pinned: Boolean,
 )
 
 @Entity(tableName = "memories", indices = [Index("createdAt")])

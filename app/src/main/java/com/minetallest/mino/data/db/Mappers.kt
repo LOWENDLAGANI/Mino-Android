@@ -65,6 +65,7 @@ object Mappers {
         variantIndex = variantIndex,
         createdAt = createdAt,
         updatedAt = updatedAt,
+        pinned = pinned,
     )
 
     fun ChatMessage.toEntity() = MessageEntity(
@@ -85,6 +86,7 @@ object Mappers {
         sources = encodeSources(sources),
         usage = encodeUsage(usage),
         variants = encodeStrings(variants),
+        pinned = pinned,
     )
 
     fun MemoryEntity.toDomain() = Memory(id, text, createdAt, updatedAt)

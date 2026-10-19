@@ -33,14 +33,18 @@ import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.StopCircle
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -396,18 +400,29 @@ private fun AssistantMessage(viewModel: ChatViewModel, message: ChatMessage) {
     var menuOpen by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    Box(
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                viewModel.deleteMessage(message.id)
+            }
+            true
+        },
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .combinedClickable(
-                onClick = {},
-                onLongClick = { menuOpen = true },
-            ),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-        ) {
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        content = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .combinedClickable(
+                        onClick = {},
+                        onLongClick = { menuOpen = true },
+                    ),
+            ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 5.dp)) {
             Image(
                 painter = painterResource(R.drawable.mino_logo),
@@ -530,6 +545,18 @@ private fun AssistantMessage(viewModel: ChatViewModel, message: ChatMessage) {
 
         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
             DropdownMenuItem(
+                text = { Text(if (message.pinned) "Unpin" else "Pin", color = colors.text) },
+                onClick = { viewModel.toggleMessagePin(message.id); menuOpen = false },
+                leadingIcon = {
+                    Icon(
+                        if (message.pinned) Icons.Filled.PushPin else Icons.Filled.PushPin,
+                        contentDescription = null,
+                        tint = if (message.pinned) colors.accent else colors.textMid,
+                        modifier = Modifier.size(18.dp),
+                    )
+                },
+            )
+            DropdownMenuItem(
                 text = { Text("Copy", color = colors.text) },
                 onClick = {
                     val ok = Share.copyToClipboard(context, "Mino answer", text)
@@ -582,6 +609,30 @@ private fun AssistantMessage(viewModel: ChatViewModel, message: ChatMessage) {
                 },
             )
         }
+        }
+        dismissContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    .background(colors.dangerSoft)
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Icon(
+                    Icons.Filled.Delete,
+                    contentDescription = "Swipe to delete",
+                    tint = colors.danger,
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(
+                    "Delete",
+                    color = colors.danger,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(start = 6.dp),
+                )
+            }
+        },
     }
 }
 

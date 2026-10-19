@@ -109,6 +109,7 @@ data class ChatMessage(
     val variantIndex: Int = 0,
     val createdAt: Long,
     val updatedAt: Long? = null,
+    val pinned: Boolean = false,
 ) {
     /** The answer currently on screen (spec §6.6 variant stepper). */
     fun displayedContent(): String =
